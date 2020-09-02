@@ -1,6 +1,6 @@
 ﻿namespace Quamotion.GitVersioning.Git
 {
-    public record GitCommit
+    public struct GitCommit
     {
         public string Tree { get; set; }
         public string Sha { get; set; }
