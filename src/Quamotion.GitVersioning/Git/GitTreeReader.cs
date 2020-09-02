@@ -3,7 +3,6 @@ using System.Buffers;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -95,8 +94,8 @@ namespace Quamotion.GitVersioning.Git
             var modeLength = isFile ? 7 : 6;
 
 #if DEBUG
-            var attributes = Encoding.ASCII.GetString(fileAttributesAndName.Slice(0, modeLength));
-            var fullName = Encoding.ASCII.GetString(fileAttributesAndName.Slice(modeLength));
+            var attributes = GitRepository.Encoding.GetString(fileAttributesAndName.Slice(0, modeLength));
+            var fullName = GitRepository.Encoding.GetString(fileAttributesAndName.Slice(modeLength));
 #endif
 
             var currentName = fileAttributesAndName.Slice(modeLength);

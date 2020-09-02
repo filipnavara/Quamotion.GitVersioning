@@ -1,12 +1,11 @@
 ﻿using System;
 using System.IO;
-using System.Text;
 
 namespace Quamotion.GitVersioning.Git
 {
     public class GitReferenceReader
     {
-        private readonly static byte[] RefPrefix = Encoding.ASCII.GetBytes("ref: ");
+        private readonly static byte[] RefPrefix = GitRepository.Encoding.GetBytes("ref: ");
 
         public static string ReadReference(Stream stream)
         {

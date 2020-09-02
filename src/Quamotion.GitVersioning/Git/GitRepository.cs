@@ -103,7 +103,7 @@ namespace Quamotion.GitVersioning.Git
                 file.Read(header);
 
                 int objectTypeEnd = header.IndexOf((byte)' ');
-                actualObjectType = Encoding.ASCII.GetString(header.Slice(0, objectTypeEnd));
+                actualObjectType = Encoding.GetString(header.Slice(0, objectTypeEnd));
 
                 if (string.CompareOrdinal(actualObjectType, objectType) != 0)
                 {

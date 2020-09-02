@@ -2,14 +2,13 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace Quamotion.GitVersioning.Git
 {
     public static class GitCommitReader
     {
-        private static readonly byte[] TreeStart = Encoding.ASCII.GetBytes("tree ");
-        private static readonly byte[] ParentStart = Encoding.ASCII.GetBytes("parent ");
+        private static readonly byte[] TreeStart = GitRepository.Encoding.GetBytes("tree ");
+        private static readonly byte[] ParentStart = GitRepository.Encoding.GetBytes("parent ");
 
         private const int TreeLineLength = 46;
         private const int ParentLineLength = 48;
