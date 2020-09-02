@@ -55,5 +55,23 @@ namespace Quamotion.GitVersioning.Git
 
             return stringBuilder.ToString();
         }
+
+        public static byte[] FromHex(string hex)
+        {
+            byte[] value = new byte[hex.Length >> 1];
+
+            for (int i = 0; i < hex.Length >> 1; ++i)
+            {
+                value[i] = (byte)((GetHexVal(hex[i << 1]) << 4) + (GetHexVal(hex[(i << 1) + 1])));
+            }
+
+            return value;
+        }
+
+        public static int GetHexVal(char hex)
+        {
+            int val = hex;
+            return val - (val < 58 ? 48 : (val < 97 ? 55 : 87));
+        }
     }
 }

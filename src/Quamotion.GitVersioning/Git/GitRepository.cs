@@ -61,25 +61,72 @@ namespace Quamotion.GitVersioning.Git
 
         public Stream GetObjectBySha(string sha, string objectType)
         {
-            return GetObjectByPath(
+            Stream value = GetObjectByPath(
                 Path.Combine("objects", sha.Substring(0, 2), sha.Substring(2)),
                 objectType);
+
+            if (value != null)
+            {
+                return value;
+            }
+
+            GitPackObjectType packObjectType;
+
+            switch (objectType)
+            {
+                case "commit":
+                    packObjectType = GitPackObjectType.OBJ_COMMIT;
+                    break;
+
+                case "tree":
+                    packObjectType = GitPackObjectType.OBJ_TREE;
+                    break;
+
+                case "blob":
+                    packObjectType = GitPackObjectType.OBJ_BLOB;
+                    break;
+
+                default:
+                    throw new GitException();
+            }
+
+            var objectId = CharUtils.FromHex(sha);
+
+            foreach (var packIndexFile in Directory.GetFiles(Path.Combine(this.GitDirectory, "objects/pack/"), "*.idx"))
+            {
+                // Search for the object in the pack file
+                using (Stream stream = File.OpenRead(packIndexFile))
+                {
+                    var reader = new GitPackIndexReader(stream);
+                    var offset = reader.GetOffset(objectId);
+
+                    if (offset != null)
+                    {
+                        Stream packStream = File.OpenRead(Path.ChangeExtension(packIndexFile, ".pack"));
+                        return GitPackReader.GetObject(packStream, offset.Value, packObjectType);
+                    }
+                }
+            }
+
+            throw new GitException();
         }
 
         public Stream GetObjectByPath(string path, string objectType)
         {
             string fullPath = Path.Combine(GitDirectory, path);
 
+            if (!File.Exists(fullPath))
+            {
+                return null;
+            }
+
             Stream compressedFile = File.OpenRead(fullPath);
 
             (var headerLength, var objectLength) = GetObjectLengthAndVerifyType(compressedFile, objectType);
 
             compressedFile.Seek(0, SeekOrigin.Begin);
-            Span<byte> buffer = stackalloc byte[2];
-            compressedFile.Read(buffer);
+            var file = GitObjectStream.Create(compressedFile, objectLength);
 
-            // Open the file and skip past the header
-            Stream file = new GitObjectStream(compressedFile, objectLength);
             Span<byte> header = stackalloc byte[headerLength + 1];
             file.Read(header);
 
