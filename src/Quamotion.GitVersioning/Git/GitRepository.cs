@@ -103,7 +103,7 @@ namespace Quamotion.GitVersioning.Git
                     if (offset != null)
                     {
                         Stream packStream = File.OpenRead(Path.ChangeExtension(packIndexFile, ".pack"));
-                        return GitPackReader.GetObject(packStream, offset.Value, packObjectType);
+                        return GitPackReader.GetObject(this, packStream, offset.Value, objectType, packObjectType);
                     }
                 }
             }

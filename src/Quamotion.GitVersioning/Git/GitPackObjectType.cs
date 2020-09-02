@@ -7,7 +7,7 @@
         OBJ_TREE = 2,
         OBJ_BLOB = 3,
         OBJ_TAG = 4,
-        OBJ_OFS_DELTA = 5,
-        OBJ_REF_DELTA = 6,
+        OBJ_OFS_DELTA = 6,
+        OBJ_REF_DELTA = 7,
     }
 }
