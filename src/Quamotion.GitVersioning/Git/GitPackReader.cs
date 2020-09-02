@@ -32,10 +32,7 @@ namespace Quamotion.GitVersioning.Git
 
             stream.Seek(offset, SeekOrigin.Begin);
 
-            var header = (byte)stream.ReadByte();
-
-            var type = (GitPackObjectType)((header & 112) >> 4);
-            var compressedSize = header & 15 + ReadDynamicIntLittleEndian(stream) << 4;
+            var (type, decompressedSize) = ReadObjectHeader(stream);
 
             // Tips for handling deltas: https://github.com/choffmeister/gitnet/blob/4d907623d5ce2d79a8875aee82e718c12a8aad0b/src/GitNet/GitPack.cs
             if (type != objectType)
@@ -43,22 +40,28 @@ namespace Quamotion.GitVersioning.Git
                 throw new GitException();
             }
 
-            return GitObjectStream.Create(stream, -1);
+            return GitObjectStream.Create(stream, decompressedSize);
         }
 
-        private static int ReadDynamicIntLittleEndian(Stream stream)
+        private static (GitPackObjectType, int) ReadObjectHeader(Stream stream)
         {
-            int result = 0;
-            int j = 0;
-            byte b;
+            byte value = (byte)stream.ReadByte();
+
+            var type = (GitPackObjectType)((value & 0b0111_0000) >> 4);
+            int length = value & 0b_1111;
+
+            Debug.Assert((value & 0b1000_0000) == 128);
+
+            int shift = 4;
 
             do
             {
-                b = (byte)stream.ReadByte();
-                result |= (b & 127) << (7 * j++);
-            } while ((b & (byte)128) != 0);
+                value = (byte)stream.ReadByte();
+                length = length | ((value & 0b0111_1111) << shift);
+                shift += 7;
+            } while ((value & 0b1000_0000) != 0);
 
-            return result;
+            return (type, length);
         }
     }
 }

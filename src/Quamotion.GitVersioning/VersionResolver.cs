@@ -24,12 +24,12 @@ namespace Quamotion.GitVersioning
         {
             // Get the commit at which the version number changed, and calculate the git height
             this.logger.LogInformation("Determining the version based on '{versionPath}' in repository '{repositoryPath}'", this.versionPath, this.gitRepository.GitDirectory);
-            
+
             var version = VersionFile.GetVersion(Path.Combine(gitRepository.RootDirectory, this.versionPath));
             this.logger.LogInformation("The current version is '{version}'", version);
 
             var pathComponents = GetPathComponents(this.versionPath);
-            
+
             var commit = gitRepository.GetHeadCommit();
             string[] treeIds = new string[pathComponents.Length];
 
@@ -60,7 +60,7 @@ namespace Quamotion.GitVersioning
 
                     if (i == pathComponents.Length - 1)
                     {
-                        // Read the update the version information
+                        // Read the updated version information
                         using (Stream versionStream = gitRepository.GetObjectBySha(treeId, "blob"))
                         {
                             var currentVersion = VersionFile.GetVersion(versionStream);
@@ -68,7 +68,7 @@ namespace Quamotion.GitVersioning
 
                             versionUpdated = currentVersion != version;
 
-                            if(versionUpdated)
+                            if (versionUpdated)
                             {
                                 this.logger.LogInformation("The version number changed from '{version}' to '{currentVersion}' in commit '{commit}'. Using this commit as the baseline.", version, currentVersion, commit.Sha);
                             }
