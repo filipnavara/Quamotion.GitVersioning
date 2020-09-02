@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -72,9 +70,11 @@ namespace Quamotion.GitVersioning.Git
         {
             string fullPath = Path.Combine(GitDirectory, path);
 
-            (var headerLength, var objectLength) = GetObjectLengthAndVerifyType(fullPath, objectType);
-
             Stream compressedFile = File.OpenRead(fullPath);
+
+            (var headerLength, var objectLength) = GetObjectLengthAndVerifyType(compressedFile, objectType);
+
+            compressedFile.Seek(0, SeekOrigin.Begin);
             Span<byte> buffer = stackalloc byte[2];
             compressedFile.Read(buffer);
 
@@ -86,35 +86,32 @@ namespace Quamotion.GitVersioning.Git
             return file;
         }
 
-        private (int, long) GetObjectLengthAndVerifyType(string fullPath, string objectType)
+        private (int, long) GetObjectLengthAndVerifyType(Stream compressedFile, string objectType)
         {
             int headerLength;
             long objectLength;
             string actualObjectType;
 
-            using (Stream compressedFile = File.OpenRead(fullPath))
+            Span<byte> buffer = stackalloc byte[2];
+            compressedFile.Read(buffer);
+
+            using (Stream file = new DeflateStream(compressedFile, CompressionMode.Decompress, leaveOpen: true))
             {
-                Span<byte> buffer = stackalloc byte[2];
-                compressedFile.Read(buffer);
+                // Determine the header length, file length and make sure the object type matches the expected
+                // object type.
+                Span<byte> header = stackalloc byte[128];
+                file.Read(header);
 
-                using (Stream file = new DeflateStream(compressedFile, CompressionMode.Decompress, leaveOpen: false))
+                int objectTypeEnd = header.IndexOf((byte)' ');
+                actualObjectType = Encoding.ASCII.GetString(header.Slice(0, objectTypeEnd));
+
+                if (string.CompareOrdinal(actualObjectType, objectType) != 0)
                 {
-                    // Determine the header length, file length and make sure the object type matches the expected
-                    // object type.
-                    Span<byte> header = stackalloc byte[128];
-                    file.Read(header);
-
-                    int objectTypeEnd = header.IndexOf((byte)' ');
-                    actualObjectType = Encoding.ASCII.GetString(header.Slice(0, objectTypeEnd));
-
-                    if (string.CompareOrdinal(actualObjectType, objectType) != 0)
-                    {
-                        throw new Exception();
-                    }
-
-                    headerLength = header.IndexOf((byte)0);
-                    objectLength = long.Parse(Encoding.ASCII.GetString(header.Slice(objectTypeEnd + 1, headerLength - objectTypeEnd - 1)));
+                    throw new Exception();
                 }
+
+                headerLength = header.IndexOf((byte)0);
+                objectLength = long.Parse(Encoding.GetString(header.Slice(objectTypeEnd + 1, headerLength - objectTypeEnd - 1)));
             }
 
             return (headerLength, objectLength);
