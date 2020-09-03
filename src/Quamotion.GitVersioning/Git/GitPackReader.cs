@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO;
@@ -10,11 +9,11 @@ namespace Quamotion.GitVersioning.Git
     {
         private static readonly byte[] Signature = GitRepository.Encoding.GetBytes("PACK");
 
-        public static Stream GetObject(GitRepository repository, Stream stream, int offset, string objectType, GitPackObjectType packObjectType)
+        public static Stream GetObject(GitPack pack, Stream stream, int offset, string objectType, GitPackObjectType packObjectType)
         {
-            if (repository == null)
+            if (pack == null)
             {
-                throw new ArgumentNullException(nameof(repository));
+                throw new ArgumentNullException(nameof(pack));
             }
 
             if (stream == null)
@@ -35,7 +34,6 @@ namespace Quamotion.GitVersioning.Git
 
             stream.ReadAll(buffer);
             var numberOfObjects = BinaryPrimitives.ReadInt32BigEndian(buffer);
-            Debug.Write($"Got {numberOfObjects} objects in packfile");
 
             stream.Seek(offset, SeekOrigin.Begin);
 
@@ -43,62 +41,24 @@ namespace Quamotion.GitVersioning.Git
 
             if (type == GitPackObjectType.OBJ_OFS_DELTA)
             {
-                var baseObjectOffset = ReadVariableLengthInteger(stream);
+                var baseObjectRelativeOffset = ReadVariableLengthInteger(stream);
+                var baseObjectOffset = (int)(offset - baseObjectRelativeOffset);
 
-                var deltaOffset = stream.Position;
-
-                var baseObjectCompressedStream = GetObject(repository, stream, (int)(offset - baseObjectOffset), objectType, packObjectType);
-                MemoryStream baseObjectStream = new MemoryStream();
-                baseObjectCompressedStream.CopyTo(baseObjectStream);
-
-                stream.Seek(deltaOffset, SeekOrigin.Begin);
                 var deltaStream = GitObjectStream.Create(stream, decompressedSize);
 
-                int sourceLength = ReadMbsInt(deltaStream);
+                int baseObjectlength = ReadMbsInt(deltaStream);
                 int targetLength = ReadMbsInt(deltaStream);
 
-                MemoryStream objectStream = new MemoryStream();
+                var baseObjectStream = pack.GetObject(baseObjectOffset, objectType);
 
-                DeltaInstruction? maybeInstruction;
-                DeltaInstruction instruction;
-
-                while ((maybeInstruction = DeltaStreamReader.Read(deltaStream)) != null)
-                {
-                    instruction = maybeInstruction.Value;
-
-                    switch (instruction.InstructionType)
-                    {
-                        case DeltaInstructionType.Copy:
-                            baseObjectStream.Seek(instruction.Offset, SeekOrigin.Begin);
-                            Debug.Assert(baseObjectStream.Position == instruction.Offset);
-                            byte[] copyBuffer = ArrayPool<byte>.Shared.Rent(instruction.Size);
-                            var copyRead = baseObjectStream.Read(copyBuffer, 0, instruction.Size);
-                            Debug.Assert(copyRead == instruction.Size);
-                            objectStream.Write(copyBuffer, 0, instruction.Size);
-                            ArrayPool<byte>.Shared.Return(copyBuffer);
-
-                            break;
-
-                        case DeltaInstructionType.Insert:
-                            byte[] insertBuffer = ArrayPool<byte>.Shared.Rent(instruction.Size);
-                            var insertRead = deltaStream.Read(insertBuffer, 0, instruction.Size);
-                            Debug.Assert(insertRead == instruction.Size);
-                            objectStream.Write(insertBuffer, 0, instruction.Size);
-                            ArrayPool<byte>.Shared.Return(insertBuffer);
-                            break;
-                    }
-                }
-
-                Debug.Assert(objectStream.Length == targetLength);
-                objectStream.Position = 0;
-                return objectStream;
+                return new GitPackDeltafiedStream(baseObjectStream, deltaStream, targetLength);
             }
             else if (type == GitPackObjectType.OBJ_REF_DELTA)
             {
                 Span<byte> baseObjectId = stackalloc byte[20];
                 stream.ReadAll(baseObjectId);
 
-                Stream baseObject = repository.GetObjectBySha(CharUtils.ToHex(baseObjectId), objectType);
+                Stream baseObject = pack.Repository.GetObjectBySha(CharUtils.ToHex(baseObjectId), objectType);
 
                 throw new NotImplementedException();
             }

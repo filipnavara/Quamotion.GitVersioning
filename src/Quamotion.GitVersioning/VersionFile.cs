@@ -7,6 +7,13 @@ namespace Quamotion.GitVersioning
 {
     public class VersionFile
     {
+        const bool ClearArray =
+#if DEBUG
+            true;
+#else
+            false;
+#endif
+
         public static string GetVersion(string path)
         {
             using (var stream = File.OpenRead(path))
@@ -36,7 +43,7 @@ namespace Quamotion.GitVersioning
                 }
             }
 
-            ArrayPool<byte>.Shared.Return(data);
+            ArrayPool<byte>.Shared.Return(data, clearArray: ClearArray);
 
             return value;
         }

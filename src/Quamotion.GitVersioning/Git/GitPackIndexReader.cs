@@ -81,7 +81,6 @@ namespace Quamotion.GitVersioning.Git
             while (!found && this.stream.Position < 4 + 4 + 256 * 4 + 20 * packEnd)
             {
                 stream.ReadAll(current);
-                Debug.WriteLine(CharUtils.ToHex(current));
 
                 if (current.SequenceEqual(objectName))
                 {

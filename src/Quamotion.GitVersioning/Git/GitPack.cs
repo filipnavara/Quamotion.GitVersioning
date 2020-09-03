@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Quamotion.GitVersioning.Git
@@ -7,6 +8,7 @@ namespace Quamotion.GitVersioning.Git
     {
         private readonly string name;
         private readonly GitRepository repository;
+        private readonly GitPackCache cache;
 
         private Lazy<GitPackIndexReader> indexReader;
 
@@ -15,7 +17,11 @@ namespace Quamotion.GitVersioning.Git
             this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
             this.name = name ?? throw new ArgumentNullException(nameof(name));
             this.indexReader = new Lazy<GitPackIndexReader>(OpenIndex);
+            this.cache = repository.CacheFactory(this);
         }
+
+        public GitRepository Repository => this.repository;
+        public string Name => name;
 
         public bool TryGetObject(byte[] objectId, string objectType, out Stream value)
         {
@@ -39,8 +45,20 @@ namespace Quamotion.GitVersioning.Git
             return indexReader.GetOffset(objectId);
         }
 
+        private readonly Dictionary<int, int> histogram = new Dictionary<int, int>();
+
         public Stream GetObject(int offset, string objectType)
         {
+            if (!histogram.TryAdd(offset, 1))
+            {
+                histogram[offset] += 1;
+            }
+
+            if (this.cache.TryOpen(offset, out Stream stream))
+            {
+                return stream;
+            }
+
             GitPackObjectType packObjectType;
 
             switch (objectType)
@@ -62,7 +80,9 @@ namespace Quamotion.GitVersioning.Git
             }
 
             Stream packStream = File.OpenRead(Path.Combine(this.repository.GitDirectory, "objects/pack", $"{this.name}.pack"));
-            return GitPackReader.GetObject(this.repository, packStream, offset, objectType, packObjectType);
+            Stream objectStream = GitPackReader.GetObject(this, packStream, offset, objectType, packObjectType);
+
+            return this.cache.Add(offset, objectStream);
         }
 
         public void Dispose()

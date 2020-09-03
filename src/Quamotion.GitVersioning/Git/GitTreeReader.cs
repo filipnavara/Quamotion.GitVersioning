@@ -93,11 +93,6 @@ namespace Quamotion.GitVersioning.Git
             bool isFile = fileAttributesAndName[0] == (byte)'1';
             var modeLength = isFile ? 7 : 6;
 
-#if DEBUG
-            var attributes = GitRepository.Encoding.GetString(fileAttributesAndName.Slice(0, modeLength));
-            var fullName = GitRepository.Encoding.GetString(fileAttributesAndName.Slice(modeLength));
-#endif
-
             var currentName = fileAttributesAndName.Slice(modeLength);
 
             if (currentName.SequenceEqual(name))

@@ -20,7 +20,7 @@ namespace Quamotion.GitVersioning
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<string> GetVersion(CancellationToken cancellationToken)
+        public string GetVersion()
         {
             // Get the commit at which the version number changed, and calculate the git height
             this.logger.LogInformation("Determining the version based on '{versionPath}' in repository '{repositoryPath}'", this.versionPath, this.gitRepository.GitDirectory);
@@ -46,7 +46,7 @@ namespace Quamotion.GitVersioning
 
                 for (int i = 0; i < pathComponents.Length; i++)
                 {
-                    treeId = await gitRepository.GetTreeEntry(treeId, pathComponents[i], cancellationToken);
+                    treeId = gitRepository.GetTreeEntry(treeId, pathComponents[i]);
                     this.logger.LogDebug("The tree ID for '{pathComponent}' is '{treeId}'", pathComponents[i], treeId);
 
                     if (treeIds[i] == treeId)

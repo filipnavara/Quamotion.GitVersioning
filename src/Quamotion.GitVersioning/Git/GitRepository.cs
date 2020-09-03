@@ -1,9 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Quamotion.GitVersioning.Git
 {
@@ -54,16 +52,23 @@ namespace Quamotion.GitVersioning.Git
             }
         }
 
-        public async Task<string> GetTreeEntry(string treeId, string nodeName, CancellationToken cancellationToken)
+        public string GetTreeEntry(string treeId, string nodeName)
         {
             using (Stream treeStream = this.GetObjectBySha(treeId, "tree"))
             {
-                return await GitTreeReader.FindNode(treeStream, Encoding.GetBytes(nodeName), cancellationToken).ConfigureAwait(false);
+                return GitTreeStreamingReader.FindNode(treeStream, Encoding.GetBytes(nodeName));
             }
         }
 
+        private Dictionary<string, int> histogram = new Dictionary<string, int>();
+
         public Stream GetObjectBySha(string sha, string objectType)
         {
+            if (!this.histogram.TryAdd(sha, 1))
+            {
+                this.histogram[sha] += 1;
+            }
+
             Stream value = GetObjectByPath(
                 Path.Combine("objects", sha.Substring(0, 2), sha.Substring(2)),
                 objectType);
@@ -90,53 +95,20 @@ namespace Quamotion.GitVersioning.Git
         {
             string fullPath = Path.Combine(GitDirectory, path);
 
-            if (!File.Exists(fullPath))
+            if (!FileHelpers.TryOpen(fullPath, out Stream compressedFile))
             {
                 return null;
             }
 
-            Stream compressedFile = File.OpenRead(fullPath);
+            var file = GitObjectStream.Create(compressedFile, -1);
+            file.ReadObjectTypeAndLength();
 
-            (var headerLength, var objectLength) = GetObjectLengthAndVerifyType(compressedFile, objectType);
-
-            compressedFile.Seek(0, SeekOrigin.Begin);
-            var file = GitObjectStream.Create(compressedFile, objectLength);
-
-            Span<byte> header = stackalloc byte[headerLength + 1];
-            file.Read(header);
-
-            return file;
-        }
-
-        private (int, long) GetObjectLengthAndVerifyType(Stream compressedFile, string objectType)
-        {
-            int headerLength;
-            long objectLength;
-            string actualObjectType;
-
-            Span<byte> buffer = stackalloc byte[2];
-            compressedFile.Read(buffer);
-
-            using (Stream file = new DeflateStream(compressedFile, CompressionMode.Decompress, leaveOpen: true))
+            if (string.CompareOrdinal(file.ObjectType, objectType) != 0)
             {
-                // Determine the header length, file length and make sure the object type matches the expected
-                // object type.
-                Span<byte> header = stackalloc byte[128];
-                file.Read(header);
-
-                int objectTypeEnd = header.IndexOf((byte)' ');
-                actualObjectType = Encoding.GetString(header.Slice(0, objectTypeEnd));
-
-                if (string.CompareOrdinal(actualObjectType, objectType) != 0)
-                {
-                    throw new Exception();
-                }
-
-                headerLength = header.IndexOf((byte)0);
-                objectLength = long.Parse(Encoding.GetString(header.Slice(objectTypeEnd + 1, headerLength - objectTypeEnd - 1)));
+                throw new GitException();
             }
 
-            return (headerLength, objectLength);
+            return file;
         }
 
         public string ResolveReference(string reference)
@@ -163,6 +135,8 @@ namespace Quamotion.GitVersioning.Git
 
             return packs;
         }
+
+        public Func<GitPack, GitPackCache> CacheFactory { get; set; } = (cache) => new GitPackMemoryCache(cache);
 
         public void Dispose()
         {
