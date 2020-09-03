@@ -5,26 +5,44 @@ using System.IO;
 
 namespace Quamotion.GitVersioning.Git
 {
-    public class GitPackIndexReader
+    public class GitPackIndexReader : IDisposable
     {
         private static readonly byte[] Header = new byte[] { 0xff, 0x74, 0x4f, 0x63 };
         private readonly Stream stream;
+        private bool initialized = false;
 
         public GitPackIndexReader(Stream stream)
         {
             this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
         }
 
+        public void Initialize()
+        {
+            if (!this.initialized)
+            {
+                Span<byte> buffer = stackalloc byte[4];
+                this.stream.Seek(0, SeekOrigin.Begin);
+
+                this.stream.Read(buffer);
+                Debug.Assert(buffer.SequenceEqual(Header));
+
+                this.stream.Read(buffer);
+                var version = BinaryPrimitives.ReadInt32BigEndian(buffer);
+                Debug.Assert(version == 2);
+            }
+        }
+
+        public void Dispose()
+        {
+            this.stream.Dispose();
+        }
+
         public int? GetOffset(byte[] objectName)
         {
+            this.Initialize();
+
             Span<byte> buffer = stackalloc byte[4];
-
-            this.stream.Read(buffer);
-            Debug.Assert(buffer.SequenceEqual(Header));
-
-            this.stream.Read(buffer);
-            var version = BinaryPrimitives.ReadInt32BigEndian(buffer);
-            Debug.Assert(version == 2);
+            this.stream.Seek(8, SeekOrigin.Begin);
 
             // Read the fanout table. The fanout table consists of 
             // 256 4-byte network byte order integers.

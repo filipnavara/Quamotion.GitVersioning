@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 
 namespace Quamotion.GitVersioning.Git
 {
-    public class GitRepository
+    public class GitRepository : IDisposable
     {
         private const string HeadFileName = "HEAD";
         private const string GitDirectoryName = ".git";
+        private readonly Lazy<GitPack[]> packs;
 
         public GitRepository(string rootDirectory)
             : this(rootDirectory, Path.Combine(rootDirectory, GitDirectoryName))
@@ -21,6 +22,8 @@ namespace Quamotion.GitVersioning.Git
         {
             this.RootDirectory = rootDirectory ?? throw new ArgumentNullException(nameof(rootDirectory));
             this.GitDirectory = gitDirectory ?? throw new ArgumentNullException(nameof(gitDirectory));
+
+            this.packs = new Lazy<GitPack[]>(LoadPacks);
         }
 
         public string RootDirectory { get; private set; }
@@ -70,41 +73,13 @@ namespace Quamotion.GitVersioning.Git
                 return value;
             }
 
-            GitPackObjectType packObjectType;
-
-            switch (objectType)
-            {
-                case "commit":
-                    packObjectType = GitPackObjectType.OBJ_COMMIT;
-                    break;
-
-                case "tree":
-                    packObjectType = GitPackObjectType.OBJ_TREE;
-                    break;
-
-                case "blob":
-                    packObjectType = GitPackObjectType.OBJ_BLOB;
-                    break;
-
-                default:
-                    throw new GitException();
-            }
-
             var objectId = CharUtils.FromHex(sha);
 
-            foreach (var packIndexFile in Directory.GetFiles(Path.Combine(this.GitDirectory, "objects/pack/"), "*.idx"))
+            foreach (var pack in this.packs.Value)
             {
-                // Search for the object in the pack file
-                using (Stream stream = File.OpenRead(packIndexFile))
+                if (pack.TryGetObject(objectId, objectType, out Stream packValue))
                 {
-                    var reader = new GitPackIndexReader(stream);
-                    var offset = reader.GetOffset(objectId);
-
-                    if (offset != null)
-                    {
-                        Stream packStream = File.OpenRead(Path.ChangeExtension(packIndexFile, ".pack"));
-                        return GitPackReader.GetObject(this, packStream, offset.Value, objectType, packObjectType);
-                    }
+                    return packValue;
                 }
             }
 
@@ -172,6 +147,31 @@ namespace Quamotion.GitVersioning.Git
                 stream.Read(objectId);
 
                 return Encoding.GetString(objectId);
+            }
+        }
+
+        private GitPack[] LoadPacks()
+        {
+            var indexFiles = Directory.GetFiles(Path.Combine(this.GitDirectory, "objects/pack/"), "*.idx");
+            GitPack[] packs = new GitPack[indexFiles.Length];
+
+            for (int i = 0; i < indexFiles.Length; i++)
+            {
+                var name = Path.GetFileNameWithoutExtension(indexFiles[i]);
+                packs[i] = new GitPack(this, name);
+            }
+
+            return packs;
+        }
+
+        public void Dispose()
+        {
+            if (this.packs.IsValueCreated)
+            {
+                foreach (var pack in this.packs.Value)
+                {
+                    pack.Dispose();
+                }
             }
         }
     }
