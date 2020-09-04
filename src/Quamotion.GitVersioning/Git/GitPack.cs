@@ -92,7 +92,7 @@ namespace Quamotion.GitVersioning.Git
                     throw new GitException();
             }
 
-            Stream packStream = File.OpenRead(Path.Combine(this.repository.GitDirectory, "objects/pack", $"{this.name}.pack"));
+            Stream packStream = File.OpenRead(Path.Combine(this.repository.ObjectDirectory, "pack", $"{this.name}.pack"));
             Stream objectStream = GitPackReader.GetObject(this, packStream, offset, objectType, packObjectType);
 
             return this.cache.Add(offset, objectStream);
@@ -108,7 +108,7 @@ namespace Quamotion.GitVersioning.Git
 
         private GitPackIndexReader OpenIndex()
         {
-            var indexFileName = Path.Combine(this.repository.GitDirectory, "objects/pack", $"{this.name}.idx");
+            var indexFileName = Path.Combine(this.repository.ObjectDirectory, "pack", $"{this.name}.idx");
 
             return new GitPackIndexReader(File.OpenRead(indexFileName));
         }

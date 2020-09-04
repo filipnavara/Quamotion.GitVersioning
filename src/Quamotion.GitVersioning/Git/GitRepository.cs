@@ -21,11 +21,28 @@ namespace Quamotion.GitVersioning.Git
             this.RootDirectory = rootDirectory ?? throw new ArgumentNullException(nameof(rootDirectory));
             this.GitDirectory = gitDirectory ?? throw new ArgumentNullException(nameof(gitDirectory));
 
+            if (FileHelpers.TryOpen(
+                Path.Combine(this.GitDirectory, "objects", "info", "alternates"),
+                out Stream alternateStream))
+            {
+                Span<byte> filename = stackalloc byte[4096];
+                var length = alternateStream.Read(filename);
+                length = filename.IndexOf((byte)'\n');
+
+                this.ObjectDirectory = Encoding.GetString(filename.Slice(0, length));
+            }
+            else
+            {
+                this.ObjectDirectory = Path.Combine(this.GitDirectory, "objects");
+            }
+
+
             this.packs = new Lazy<GitPack[]>(LoadPacks);
         }
 
         public string RootDirectory { get; private set; }
         public string GitDirectory { get; private set; }
+        public string ObjectDirectory { get; private set; }
 
         public static Encoding Encoding => Encoding.ASCII;
 
@@ -70,7 +87,7 @@ namespace Quamotion.GitVersioning.Git
             }
 
             Stream value = GetObjectByPath(
-                Path.Combine("objects", sha.Substring(0, 2), sha.Substring(2)),
+                Path.Combine(sha.Substring(0, 2), sha.Substring(2)),
                 objectType);
 
             if (value != null)
@@ -93,7 +110,7 @@ namespace Quamotion.GitVersioning.Git
 
         public Stream GetObjectByPath(string path, string objectType)
         {
-            string fullPath = Path.Combine(GitDirectory, path);
+            string fullPath = Path.Combine(this.ObjectDirectory, path);
 
             if (!FileHelpers.TryOpen(fullPath, out Stream compressedFile))
             {
@@ -124,7 +141,7 @@ namespace Quamotion.GitVersioning.Git
 
         private GitPack[] LoadPacks()
         {
-            var indexFiles = Directory.GetFiles(Path.Combine(this.GitDirectory, "objects/pack/"), "*.idx");
+            var indexFiles = Directory.GetFiles(Path.Combine(this.ObjectDirectory, "pack/"), "*.idx");
             GitPack[] packs = new GitPack[indexFiles.Length];
 
             for (int i = 0; i < indexFiles.Length; i++)
