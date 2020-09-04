@@ -10,11 +10,18 @@ namespace Quamotion.GitVersioning.Git
         private static readonly byte[] Header = new byte[] { 0xff, 0x74, 0x4f, 0x63 };
         private readonly Stream stream;
         private bool initialized = false;
+        private int objectCount = 0;
 
         public GitPackIndexReader(Stream stream)
         {
             this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
         }
+
+        // The fanout table consists of 
+        // 256 4-byte network byte order integers.
+        // The N-th entry of this table records the number of objects in the corresponding pack,
+        // the first byte of whose object name is less than or equal to N.
+        private readonly int[] fanoutTable = new int[257];
 
         public void Initialize()
         {
@@ -29,6 +36,12 @@ namespace Quamotion.GitVersioning.Git
                 this.stream.Read(buffer);
                 var version = BinaryPrimitives.ReadInt32BigEndian(buffer);
                 Debug.Assert(version == 2);
+
+                for (int i = 1; i <= 256; i++)
+                {
+                    this.stream.ReadAll(buffer);
+                    this.fanoutTable[i] = BinaryPrimitives.ReadInt32BigEndian(buffer);
+                }
             }
         }
 
@@ -42,29 +55,10 @@ namespace Quamotion.GitVersioning.Git
             this.Initialize();
 
             Span<byte> buffer = stackalloc byte[4];
-            this.stream.Seek(8, SeekOrigin.Begin);
 
-            // Read the fanout table. The fanout table consists of 
-            // 256 4-byte network byte order integers.
-            // The N-th entry of this table records the number of objects in the corresponding pack, the first byte of whose object name is less than or equal to N.
-            int packStart = 0;
-            int packEnd = 0;
-            int objectCount = 0;
-
-            if (objectName[0] > 0)
-            {
-                this.stream.Seek(4 * (objectName[0] - 1), SeekOrigin.Current);
-                this.stream.ReadAll(buffer);
-                packStart = BinaryPrimitives.ReadInt32BigEndian(buffer);
-            }
-
-            this.stream.ReadAll(buffer);
-            packEnd = BinaryPrimitives.ReadInt32BigEndian(buffer);
-
-            // Get the total number of objects
-            this.stream.Seek(4 * (255 - objectName[0] - 1), SeekOrigin.Current);
-            this.stream.ReadAll(buffer);
-            objectCount = BinaryPrimitives.ReadInt32BigEndian(buffer);
+            var packStart = this.fanoutTable[objectName[0]];
+            var packEnd = this.fanoutTable[objectName[0] + 1];
+            var objectCount = this.fanoutTable[256];
 
             // The fanout table is followed by a table of sorted 20-byte SHA-1 object names.
             // These are packed together without offset values to reduce the cache footprint of the binary search for a specific object name.
@@ -74,25 +68,36 @@ namespace Quamotion.GitVersioning.Git
             this.stream.Seek(4 + 4 + 256 * 4 + 20 * packStart, SeekOrigin.Begin);
 
             // We should do a binary search instead
-            int i = packStart;
-            bool found = false;
+            var i = 0;
+            var order = 0;
 
             Span<byte> current = stackalloc byte[20];
-            while (!found && this.stream.Position < 4 + 4 + 256 * 4 + 20 * packEnd)
-            {
-                stream.ReadAll(current);
 
-                if (current.SequenceEqual(objectName))
+            while (true)
+            {
+                i = (packStart + packEnd) / 2;
+                var position = 4 + 4 + 256 * 4 + 20 * i;
+
+                this.stream.Seek(position, SeekOrigin.Begin);
+                this.stream.Read(current);
+
+                order = current.SequenceCompareTo(objectName);
+
+                if (order < 0)
                 {
-                    found = true;
+                    packStart = i;
+                }
+                else if (order > 0)
+                {
+                    packEnd = i;
                 }
                 else
                 {
-                    i++;
+                    break;
                 }
             }
 
-            if (!found)
+            if (order != 0)
             {
                 return null;
             }

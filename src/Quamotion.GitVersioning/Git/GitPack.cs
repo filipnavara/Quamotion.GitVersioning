@@ -9,6 +9,7 @@ namespace Quamotion.GitVersioning.Git
         private readonly string name;
         private readonly GitRepository repository;
         private readonly GitPackCache cache;
+        private readonly Dictionary<string, int> offsets = new Dictionary<string, int>();
 
         private Lazy<GitPackIndexReader> indexReader;
 
@@ -41,8 +42,20 @@ namespace Quamotion.GitVersioning.Git
 
         public int? GetOffset(byte[] objectId)
         {
+            if (this.offsets.TryGetValue(CharUtils.ToHex(objectId), out int cachedOffset))
+            {
+                return cachedOffset;
+            }
+
             var indexReader = this.indexReader.Value;
-            return indexReader.GetOffset(objectId);
+            var offset = indexReader.GetOffset(objectId);
+
+            if (offset != null)
+            {
+                this.offsets.TryAdd(CharUtils.ToHex(objectId), offset.Value);
+            }
+
+            return offset;
         }
 
         private readonly Dictionary<int, int> histogram = new Dictionary<int, int>();
