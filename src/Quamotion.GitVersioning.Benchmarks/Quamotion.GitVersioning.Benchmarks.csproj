@@ -16,6 +16,7 @@
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Nerdbank.GitVersioning\src\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
     <ProjectReference Include="..\Quamotion.GitVersioning\Quamotion.GitVersioning.csproj" />
   </ItemGroup>
 </Project>

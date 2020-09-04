@@ -6,7 +6,7 @@ namespace Quamotion.GitVersioning.Benchmarks
     {
         public static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<Benchmarks>();
+            var summary = BenchmarkRunner.Run<GetVersionBenchmarks>();
         }
     }
 }

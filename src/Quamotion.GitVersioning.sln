@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Quamotion.GitVersioning.Tes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Quamotion.GitVersioning.Benchmarks", "Quamotion.GitVersioning.Benchmarks\Quamotion.GitVersioning.Benchmarks.csproj", "{E877F954-7E80-4B3C-B50F-D0A273ADE8C7}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NerdBank.GitVersioning", "..\..\Nerdbank.GitVersioning\src\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj", "{20BA0DA5-2DA2-4583-AC38-75823715A507}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{E877F954-7E80-4B3C-B50F-D0A273ADE8C7}.Release|x64.Build.0 = Release|Any CPU
 		{E877F954-7E80-4B3C-B50F-D0A273ADE8C7}.Release|x86.ActiveCfg = Release|Any CPU
 		{E877F954-7E80-4B3C-B50F-D0A273ADE8C7}.Release|x86.Build.0 = Release|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Debug|x64.Build.0 = Debug|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Debug|x86.Build.0 = Debug|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Release|x64.ActiveCfg = Release|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Release|x64.Build.0 = Release|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Release|x86.ActiveCfg = Release|Any CPU
+		{20BA0DA5-2DA2-4583-AC38-75823715A507}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
