@@ -73,7 +73,7 @@ namespace Quamotion.GitVersioning.Git
 
             Span<byte> current = stackalloc byte[20];
 
-            while (true)
+            while (packStart <= packEnd)
             {
                 i = (packStart + packEnd) / 2;
                 var position = 4 + 4 + 256 * 4 + 20 * i;
@@ -85,11 +85,11 @@ namespace Quamotion.GitVersioning.Git
 
                 if (order < 0)
                 {
-                    packStart = i;
+                    packStart = i + 1;
                 }
                 else if (order > 0)
                 {
-                    packEnd = i;
+                    packEnd = i - 1;
                 }
                 else
                 {
