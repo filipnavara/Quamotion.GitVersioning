@@ -60,7 +60,12 @@ namespace Quamotion.GitVersioning.Git
 
                 Stream baseObject = pack.Repository.GetObjectBySha(CharUtils.ToHex(baseObjectId), objectType);
 
-                throw new NotImplementedException();
+                var deltaStream = GitObjectStream.Create(stream, decompressedSize);
+
+                int baseObjectlength = ReadMbsInt(deltaStream);
+                int targetLength = ReadMbsInt(deltaStream);
+
+                return new GitPackDeltafiedStream(baseObject, deltaStream, targetLength);
             }
 
             // Tips for handling deltas: https://github.com/choffmeister/gitnet/blob/4d907623d5ce2d79a8875aee82e718c12a8aad0b/src/GitNet/GitPack.cs
