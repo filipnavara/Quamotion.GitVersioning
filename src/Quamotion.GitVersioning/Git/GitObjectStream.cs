@@ -7,14 +7,15 @@ using System.Threading.Tasks;
 
 namespace Quamotion.GitVersioning.Git
 {
-    public class GitObjectStream : DeflateStream
+    public class GitObjectStream : Stream
     {
         private long length;
         private long position;
+        private DeflateStream stream;
 
         public GitObjectStream(Stream stream, long length)
-            : base(stream, CompressionMode.Decompress, leaveOpen: false)
         {
+            this.stream = new DeflateStream(stream, CompressionMode.Decompress, leaveOpen: false);
             this.length = length;
         }
 
@@ -27,6 +28,12 @@ namespace Quamotion.GitVersioning.Git
         public override long Length => this.length;
 
         public string ObjectType { get; private set; }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => true;
+
+        public override bool CanWrite => false;
 
         public static GitObjectStream Create(Stream stream, long length)
         {
@@ -66,39 +73,41 @@ namespace Quamotion.GitVersioning.Git
 
             var lengthString = GitRepository.Encoding.GetString(buffer.Slice(objectTypeEnd + 1, headerLength - objectTypeEnd - 1));
             this.length = long.Parse(lengthString);
+
+            this.position = 0;
         }
 
         public override int Read(byte[] array, int offset, int count)
         {
-            int read = base.Read(array, offset, count);
+            int read = this.stream.Read(array, offset, count);
             this.position += read;
-            return read;
+            return this.Read(array.AsSpan(offset, count));
         }
 
         public override int Read(Span<byte> buffer)
         {
-            int read = base.Read(buffer);
+            int read = this.stream.Read(buffer);
             this.position += read;
             return read;
         }
 
         public override async Task<int> ReadAsync(byte[] array, int offset, int count, CancellationToken cancellationToken)
         {
-            int read = await base.ReadAsync(array, offset, count, cancellationToken);
+            int read = await this.stream.ReadAsync(array, offset, count, cancellationToken);
             this.position += read;
             return read;
         }
 
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            int read = await base.ReadAsync(buffer, cancellationToken);
+            int read = await this.stream.ReadAsync(buffer, cancellationToken);
             this.position += read;
             return read;
         }
 
         public override int ReadByte()
         {
-            int value = base.ReadByte();
+            int value = this.stream.ReadByte();
 
             if (value != -1)
             {
@@ -134,6 +143,26 @@ namespace Quamotion.GitVersioning.Git
             {
                 throw new NotImplementedException();
             }
+        }
+
+        public override void Flush()
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotSupportedException();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            this.stream.Dispose();
         }
     }
 }
