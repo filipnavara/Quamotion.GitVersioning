@@ -153,53 +153,5 @@ namespace Quamotion.GitVersioning.Git
             this.deltaStream.Dispose();
             this.baseStream.Dispose();
         }
-
-        /*
-
-                ///////////////////////
-                var deltaOffset = stream.Position;
-
-                var baseObjectCompressedStream = GetObject(repository, stream, (int)(offset - baseObjectOffset), objectType, packObjectType);
-                MemoryStream baseObjectStream = new MemoryStream();
-                baseObjectCompressedStream.CopyTo(baseObjectStream);
-
-                stream.Seek(deltaOffset, SeekOrigin.Begin);
-
-
-                MemoryStream objectStream = new MemoryStream();
-
-                DeltaInstruction? maybeInstruction;
-                DeltaInstruction instruction;
-
-                while ((maybeInstruction = DeltaStreamReader.Read(deltaStream)) != null)
-                {
-                    instruction = maybeInstruction.Value;
-
-                    switch (instruction.InstructionType)
-                    {
-                        case DeltaInstructionType.Copy:
-                            baseObjectStream.Seek(instruction.Offset, SeekOrigin.Begin);
-                            Debug.Assert(baseObjectStream.Position == instruction.Offset);
-                            byte[] copyBuffer = ArrayPool<byte>.Shared.Rent(instruction.Size);
-                            var copyRead = baseObjectStream.Read(copyBuffer, 0, instruction.Size);
-                            Debug.Assert(copyRead == instruction.Size);
-                            objectStream.Write(copyBuffer, 0, instruction.Size);
-                            ArrayPool<byte>.Shared.Return(copyBuffer);
-
-                            break;
-
-                        case DeltaInstructionType.Insert:
-                            byte[] insertBuffer = ArrayPool<byte>.Shared.Rent(instruction.Size);
-                            var insertRead = deltaStream.Read(insertBuffer, 0, instruction.Size);
-                            Debug.Assert(insertRead == instruction.Size);
-                            objectStream.Write(insertBuffer, 0, instruction.Size);
-                            ArrayPool<byte>.Shared.Return(insertBuffer);
-                            break;
-                    }
-                }
-
-                Debug.Assert(objectStream.Length == targetLength);
-                objectStream.Position = 0;
-                return objectStream;*/
     }
 }
