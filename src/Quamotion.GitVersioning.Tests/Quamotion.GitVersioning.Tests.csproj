@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Nerdbank.GitVersioning\src\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
     <ProjectReference Include="..\Quamotion.GitVersioning\Quamotion.GitVersioning.csproj" />
   </ItemGroup>
 
