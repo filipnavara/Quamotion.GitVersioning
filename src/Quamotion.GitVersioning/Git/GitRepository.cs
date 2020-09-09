@@ -29,7 +29,7 @@ namespace Quamotion.GitVersioning.Git
                 var length = alternateStream.Read(filename);
                 length = filename.IndexOf((byte)'\n');
 
-                this.ObjectDirectory = Encoding.GetString(filename.Slice(0, length));
+                this.ObjectDirectory = Path.Combine(gitDirectory, "objects", Encoding.GetString(filename.Slice(0, length)));
             }
             else
             {
@@ -141,7 +141,14 @@ namespace Quamotion.GitVersioning.Git
 
         private GitPack[] LoadPacks()
         {
-            var indexFiles = Directory.GetFiles(Path.Combine(this.ObjectDirectory, "pack/"), "*.idx");
+            var packDirectory = Path.Combine(this.ObjectDirectory, "pack/");
+
+            if (!Directory.Exists(packDirectory))
+            {
+                return Array.Empty<GitPack>();
+            }
+
+            var indexFiles = Directory.GetFiles(packDirectory, "*.idx");
             GitPack[] packs = new GitPack[indexFiles.Length];
 
             for (int i = 0; i < indexFiles.Length; i++)
