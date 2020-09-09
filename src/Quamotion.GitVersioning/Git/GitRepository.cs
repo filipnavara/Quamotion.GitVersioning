@@ -125,7 +125,7 @@ namespace Quamotion.GitVersioning.Git
                 throw new GitException();
             }
 
-            return file;
+            return new GitPackMemoryCacheStream(file);
         }
 
         public string ResolveReference(string reference)
