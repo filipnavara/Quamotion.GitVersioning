@@ -81,7 +81,7 @@ namespace Quamotion.GitVersioning.Git
         {
             int read = this.stream.Read(array, offset, count);
             this.position += read;
-            return this.Read(array.AsSpan(offset, count));
+            return read;
         }
 
         public override int Read(Span<byte> buffer)
