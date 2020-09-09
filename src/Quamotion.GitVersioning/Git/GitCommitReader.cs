@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -31,28 +32,45 @@ namespace Quamotion.GitVersioning.Git
             return GitRepository.Encoding.GetString(line.Slice(TreeStart.Length, 40));
         }
 
-        public static string ReadParent(Stream stream)
+        public static bool TryReadParent(Stream stream, out string parent)
         {
             // Format: "parent ef079ebcca375f6fd54aa0cb9f35e3ecc2bb66e7\n"
+            parent = null;
 
             Span<byte> line = stackalloc byte[ParentLineLength];
-            stream.Read(line);
+            if (stream.Read(line) != ParentLineLength)
+            {
+                return false;
+            }
 
-            Debug.Assert(line.Slice(0, ParentStart.Length).SequenceEqual(ParentStart));
-            Debug.Assert(line[ParentLineLength - 1] == (byte)'\n');
+            if (!line.Slice(0, ParentStart.Length).SequenceEqual(ParentStart))
+            {
+                return false;
+            }
 
-            return GitRepository.Encoding.GetString(line.Slice(ParentStart.Length, 40));
+            if (line[ParentLineLength - 1] != (byte)'\n')
+            {
+                return false;
+            }
+
+            parent = GitRepository.Encoding.GetString(line.Slice(ParentStart.Length, 40));
+            return true;
         }
 
         public static GitCommit Read(Stream stream, string sha)
         {
             var tree = ReadTree(stream);
-            var parent = ReadParent(stream);
+
+            List<string> parents = new List<string>();
+            while (TryReadParent(stream, out string parent))
+            {
+                parents.Add(parent);
+            }
 
             return new GitCommit()
             {
                 Sha = sha,
-                Parent = parent,
+                Parents = parents,
                 Tree = tree,
             };
         }

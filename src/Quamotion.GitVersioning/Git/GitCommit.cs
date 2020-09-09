@@ -1,9 +1,11 @@
-﻿namespace Quamotion.GitVersioning.Git
+﻿using System.Collections.Generic;
+
+namespace Quamotion.GitVersioning.Git
 {
     public struct GitCommit
     {
         public string Tree { get; set; }
         public string Sha { get; set; }
-        public string Parent { get; set; }
+        public List<string> Parents { get; set; }
     }
 }

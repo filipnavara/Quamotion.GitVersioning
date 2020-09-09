@@ -76,7 +76,7 @@ namespace Quamotion.GitVersioning
                     }
                 }
 
-                commit = gitRepository.GetCommit(commit.Parent);
+                commit = gitRepository.GetCommit(commit.Parents[commit.Parents.Count - 1]);
             }
 
             return $"{version}.{gitHeight}";
