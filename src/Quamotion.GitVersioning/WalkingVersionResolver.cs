@@ -32,24 +32,22 @@ namespace Quamotion.GitVersioning
             var headCommit = gitRepository.GetHeadCommit();
             var commit = headCommit;
 
-            Stack<GitObjectId> commitsToAnalyze = new Stack<GitObjectId>();
-            commitsToAnalyze.Push(commit.Sha);
+            Stack<GitCommit> commitsToAnalyze = new Stack<GitCommit>();
+            commitsToAnalyze.Push(commit);
 
             while (commitsToAnalyze.Count > 0)
             {
                 // Analyze the current commit
                 this.logger.LogDebug("Analyzing commit '{sha}'. '{commitCount}' commits to analyze.", commit.Sha, commitsToAnalyze.Count);
 
-                var sha = commitsToAnalyze.Peek();
+                commit = commitsToAnalyze.Peek();
 
-                if (knownGitHeights.ContainsKey(sha))
+                if (knownGitHeights.ContainsKey(commit.Sha))
                 {
                     // The same commit can be pushed to the stack if two other commits had the same parent.
                     commitsToAnalyze.Pop();
                     continue;
                 }
-
-                commit = this.gitRepository.GetCommit(sha);
 
                 // If this commit has a version.json file which is semantically different from the current version.json, the git height
                 // of this commit is 1.
@@ -103,7 +101,7 @@ namespace Quamotion.GitVersioning
                     this.knownGitHeights.Add(commit.Sha, 0);
                     var poppedCommit = commitsToAnalyze.Pop();
 
-                    Debug.Assert(poppedCommit == commit.Sha);
+                    Debug.Assert(poppedCommit == commit);
                 }
                 else
                 {
@@ -122,7 +120,7 @@ namespace Quamotion.GitVersioning
                         }
                         else
                         {
-                            commitsToAnalyze.Push(parent);
+                            commitsToAnalyze.Push(this.gitRepository.GetCommit(parent));
                             hasParentWithUnknownGitHeight = true;
                         }
                     }
@@ -133,7 +131,7 @@ namespace Quamotion.GitVersioning
                         this.knownGitHeights.Add(commit.Sha, currentHeight);
                         var poppedCommit = commitsToAnalyze.Pop();
 
-                        Debug.Assert(poppedCommit == commit.Sha);
+                        Debug.Assert(poppedCommit == commit);
                     }
                 }
             }
