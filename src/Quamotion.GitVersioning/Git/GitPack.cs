@@ -9,7 +9,7 @@ namespace Quamotion.GitVersioning.Git
         private readonly string name;
         private readonly GitRepository repository;
         private readonly GitPackCache cache;
-        private readonly Dictionary<string, int> offsets = new Dictionary<string, int>();
+        private readonly Dictionary<GitObjectId, int> offsets = new Dictionary<GitObjectId, int>();
 
         private Lazy<GitPackIndexReader> indexReader;
 
@@ -24,7 +24,7 @@ namespace Quamotion.GitVersioning.Git
         public GitRepository Repository => this.repository;
         public string Name => name;
 
-        public bool TryGetObject(byte[] objectId, string objectType, out Stream value)
+        public bool TryGetObject(GitObjectId objectId, string objectType, out Stream value)
         {
             var offset = this.GetOffset(objectId);
 
@@ -40,9 +40,9 @@ namespace Quamotion.GitVersioning.Git
             }
         }
 
-        public int? GetOffset(byte[] objectId)
+        public int? GetOffset(GitObjectId objectId)
         {
-            if (this.offsets.TryGetValue(CharUtils.ToHex(objectId), out int cachedOffset))
+            if (this.offsets.TryGetValue(objectId, out int cachedOffset))
             {
                 return cachedOffset;
             }
@@ -52,7 +52,7 @@ namespace Quamotion.GitVersioning.Git
 
             if (offset != null)
             {
-                this.offsets.TryAdd(CharUtils.ToHex(objectId), offset.Value);
+                this.offsets.TryAdd(objectId, offset.Value);
             }
 
             return offset;

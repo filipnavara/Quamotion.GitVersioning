@@ -10,10 +10,10 @@ namespace Quamotion.GitVersioning
     {
         // A list of trees which lead to a version.json file which is not semantically different
         // than the current version.json file.
-        private readonly List<string> knownTreeIds = new List<string>();
+        private readonly List<GitObjectId> knownTreeIds = new List<GitObjectId>();
 
         // A list of all commits and their known git heights
-        private readonly Dictionary<string, int> knownGitHeights = new Dictionary<string, int>();
+        private readonly Dictionary<GitObjectId, int> knownGitHeights = new Dictionary<GitObjectId, int>();
 
         public WalkingVersionResolver(GitRepository gitRepository, string versionPath, ILogger<VersionResolver> logger)
             : base(gitRepository, versionPath, logger)
@@ -32,7 +32,7 @@ namespace Quamotion.GitVersioning
             var headCommit = gitRepository.GetHeadCommit();
             var commit = headCommit;
 
-            Stack<string> commitsToAnalyze = new Stack<string>();
+            Stack<GitObjectId> commitsToAnalyze = new Stack<GitObjectId>();
             commitsToAnalyze.Push(commit.Sha);
 
             while (commitsToAnalyze.Count > 0)
@@ -59,7 +59,7 @@ namespace Quamotion.GitVersioning
 
                 for (int i = 0; i <= pathComponents.Length; i++)
                 {
-                    if (treeId == null)
+                    if (treeId == GitObjectId.Empty)
                     {
                         // A version.json file was added in this revision
                         this.logger.LogDebug("The component '{pathComponent}' could not be found in this commit. Assuming the version.json file was not present.", pathComponents[i]);

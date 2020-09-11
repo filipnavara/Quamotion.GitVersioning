@@ -14,7 +14,7 @@ namespace Quamotion.GitVersioning.Git
         private const int TreeLineLength = 46;
         private const int ParentLineLength = 48;
 
-        public static string ReadTree(Stream stream)
+        public static GitObjectId ReadTree(Stream stream)
         {
             // Format: tree d8329fc1cc938780ffdd9f94e0d364e0ea74f579\n
             // 47 bytes: 
@@ -29,13 +29,13 @@ namespace Quamotion.GitVersioning.Git
             Debug.Assert(line.Slice(0, TreeStart.Length).SequenceEqual(TreeStart));
             Debug.Assert(line[TreeLineLength - 1] == (byte)'\n');
 
-            return GitRepository.Encoding.GetString(line.Slice(TreeStart.Length, 40));
+            return GitObjectId.ParseHex(line.Slice(TreeStart.Length, 40));
         }
 
-        public static bool TryReadParent(Stream stream, out string parent)
+        public static bool TryReadParent(Stream stream, out GitObjectId parent)
         {
             // Format: "parent ef079ebcca375f6fd54aa0cb9f35e3ecc2bb66e7\n"
-            parent = null;
+            parent = GitObjectId.Empty;
 
             Span<byte> line = stackalloc byte[ParentLineLength];
             if (stream.Read(line) != ParentLineLength)
@@ -53,16 +53,16 @@ namespace Quamotion.GitVersioning.Git
                 return false;
             }
 
-            parent = GitRepository.Encoding.GetString(line.Slice(ParentStart.Length, 40));
+            parent = GitObjectId.ParseHex(line.Slice(ParentStart.Length, 40));
             return true;
         }
 
-        public static GitCommit Read(Stream stream, string sha)
+        public static GitCommit Read(Stream stream, GitObjectId sha)
         {
             var tree = ReadTree(stream);
 
-            List<string> parents = new List<string>();
-            while (TryReadParent(stream, out string parent))
+            List<GitObjectId> parents = new List<GitObjectId>();
+            while (TryReadParent(stream, out GitObjectId parent))
             {
                 parents.Add(parent);
             }

@@ -46,7 +46,7 @@ namespace Quamotion.GitVersioning.Git
 
         public static Encoding Encoding => Encoding.ASCII;
 
-        public string GetHeadCommitSha()
+        public GitObjectId GetHeadCommitSha()
         {
             using (var stream = File.OpenRead(Path.Combine(this.GitDirectory, HeadFileName)))
             {
@@ -61,7 +61,7 @@ namespace Quamotion.GitVersioning.Git
             return GetCommit(GetHeadCommitSha());
         }
 
-        public GitCommit GetCommit(string sha)
+        public GitCommit GetCommit(GitObjectId sha)
         {
             using (Stream stream = this.GetObjectBySha(sha, "commit"))
             {
@@ -69,7 +69,7 @@ namespace Quamotion.GitVersioning.Git
             }
         }
 
-        public string GetTreeEntry(string treeId, string nodeName)
+        public GitObjectId GetTreeEntry(GitObjectId treeId, string nodeName)
         {
             using (Stream treeStream = this.GetObjectBySha(treeId, "tree"))
             {
@@ -77,17 +77,18 @@ namespace Quamotion.GitVersioning.Git
             }
         }
 
-        private Dictionary<string, int> histogram = new Dictionary<string, int>();
+        private Dictionary<GitObjectId, int> histogram = new Dictionary<GitObjectId, int>();
 
-        public Stream GetObjectBySha(string sha, string objectType)
+        public Stream GetObjectBySha(GitObjectId sha, string objectType)
         {
             if (!this.histogram.TryAdd(sha, 1))
             {
                 this.histogram[sha] += 1;
             }
 
+            var shaString = sha.ToString();
             Stream value = GetObjectByPath(
-                Path.Combine(sha.Substring(0, 2), sha.Substring(2)),
+                Path.Combine(shaString.Substring(0, 2), shaString.Substring(2)),
                 objectType);
 
             if (value != null)
@@ -95,11 +96,9 @@ namespace Quamotion.GitVersioning.Git
                 return value;
             }
 
-            var objectId = CharUtils.FromHex(sha);
-
             foreach (var pack in this.packs.Value)
             {
-                if (pack.TryGetObject(objectId, objectType, out Stream packValue))
+                if (pack.TryGetObject(sha, objectType, out Stream packValue))
                 {
                     return packValue;
                 }
@@ -128,14 +127,14 @@ namespace Quamotion.GitVersioning.Git
             return new GitPackMemoryCacheStream(file);
         }
 
-        public string ResolveReference(string reference)
+        public GitObjectId ResolveReference(string reference)
         {
             using (var stream = File.OpenRead(Path.Combine(this.GitDirectory, reference)))
             {
                 Span<byte> objectId = stackalloc byte[40];
                 stream.Read(objectId);
 
-                return Encoding.GetString(objectId);
+                return GitObjectId.ParseHex(objectId);
             }
         }
 

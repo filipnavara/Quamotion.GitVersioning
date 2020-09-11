@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Quamotion.GitVersioning.Git;
 using System.IO;
 
 namespace Quamotion.GitVersioning
@@ -21,7 +22,7 @@ namespace Quamotion.GitVersioning
             var pathComponents = GetPathComponents(this.versionPath);
 
             var commit = gitRepository.GetHeadCommit();
-            string[] treeIds = new string[pathComponents.Length];
+            GitObjectId[] treeIds = new GitObjectId[pathComponents.Length];
 
             int gitHeight = 0;
 

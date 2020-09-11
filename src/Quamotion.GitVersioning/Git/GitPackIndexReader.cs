@@ -50,11 +50,13 @@ namespace Quamotion.GitVersioning.Git
             this.stream.Dispose();
         }
 
-        public int? GetOffset(byte[] objectName)
+        public int? GetOffset(GitObjectId objectId)
         {
             this.Initialize();
 
             Span<byte> buffer = stackalloc byte[4];
+            Span<byte> objectName = stackalloc byte[20];
+            objectId.CopyTo(objectName);
 
             var packStart = this.fanoutTable[objectName[0]];
             var packEnd = this.fanoutTable[objectName[0] + 1];

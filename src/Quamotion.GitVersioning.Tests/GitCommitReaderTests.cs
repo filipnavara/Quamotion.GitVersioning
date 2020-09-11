@@ -22,12 +22,12 @@ namespace Quamotion.GitVersioning.Tests
             {
                 commitStream.ReadObjectTypeAndLength();
 
-                var commit = GitCommitReader.Read(commitStream, "22abd96d9c295c43ba96c60d2f44b52697c07586");
+                var commit = GitCommitReader.Read(commitStream, GitObjectId.Parse("22abd96d9c295c43ba96c60d2f44b52697c07586"));
 
                 Assert.Collection(
                     commit.Parents,
-                    c => Assert.Equal("ad86ad89e56fdf14a307d06af6efa7930218abba", c),
-                    c => Assert.Equal("01d33864bd1a114e619f9e7c22f448cca6123b34", c));
+                    c => Assert.Equal("ad86ad89e56fdf14a307d06af6efa7930218abba", c.ToString()),
+                    c => Assert.Equal("01d33864bd1a114e619f9e7c22f448cca6123b34", c.ToString()));
             }
         }
 
@@ -36,9 +36,9 @@ namespace Quamotion.GitVersioning.Tests
         {
             // This commit has no parents
             using (var repository = new GitRepository(Path.Combine(RepositoryPath, "fork1")))
-            using (var commitStream = repository.GetObjectBySha("8fdf0975b4bb82f4a10e3b9f0426b1c29dec5ed6", "commit"))
+            using (var commitStream = repository.GetObjectBySha(GitObjectId.Parse("8fdf0975b4bb82f4a10e3b9f0426b1c29dec5ed6"), "commit"))
             {
-                var commit = GitCommitReader.Read(commitStream, "8fdf0975b4bb82f4a10e3b9f0426b1c29dec5ed6");
+                var commit = GitCommitReader.Read(commitStream, GitObjectId.Parse("8fdf0975b4bb82f4a10e3b9f0426b1c29dec5ed6"));
 
                 Assert.Empty(commit.Parents);
             }
@@ -49,9 +49,9 @@ namespace Quamotion.GitVersioning.Tests
         {
             // This commit has no parents
             using (var repository = new GitRepository(Path.Combine(RepositoryPath, "upstream")))
-            using (var commitStream = repository.GetObjectBySha("0867525d2ef57e38c20cc1bec4068d01d9c74310", "commit"))
+            using (var commitStream = repository.GetObjectBySha(GitObjectId.Parse("0867525d2ef57e38c20cc1bec4068d01d9c74310"), "commit"))
             {
-                var commit = GitCommitReader.Read(commitStream, "0867525d2ef57e38c20cc1bec4068d01d9c74310");
+                var commit = GitCommitReader.Read(commitStream, GitObjectId.Parse("0867525d2ef57e38c20cc1bec4068d01d9c74310"));
 
                 Assert.Single(commit.Parents, "3ac48e11b5e3c011f0bec13adef2fbd1ba63f03a");
             }

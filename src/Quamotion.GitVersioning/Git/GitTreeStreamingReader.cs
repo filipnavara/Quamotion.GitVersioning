@@ -1,21 +1,19 @@
 ﻿using System;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO;
-using System.Text;
 
 namespace Quamotion.GitVersioning.Git
 {
     public class GitTreeStreamingReader
     {
-        public static string FindNode(Stream stream, ReadOnlySpan<byte> name)
+        public static GitObjectId FindNode(Stream stream, ReadOnlySpan<byte> name)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
             Span<byte> contents = new Span<byte>(buffer, 0, (int)stream.Length);
 
             stream.ReadAll(contents);
 
-            string value = null;
+            GitObjectId value = GitObjectId.Empty;
 
             while (contents.Length > 0)
             {
@@ -30,7 +28,7 @@ namespace Quamotion.GitVersioning.Git
 
                 if (currentName.SequenceEqual(name))
                 {
-                    value = CharUtils.ToHex(contents.Slice(fileNameEnds + 1, 20));
+                    value = GitObjectId.Parse(contents.Slice(fileNameEnds + 1, 20));
                     break;
                 }
                 else
