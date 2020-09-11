@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -77,15 +76,8 @@ namespace Quamotion.GitVersioning.Git
             }
         }
 
-        private Dictionary<GitObjectId, int> histogram = new Dictionary<GitObjectId, int>();
-
         public Stream GetObjectBySha(GitObjectId sha, string objectType)
         {
-            if (!this.histogram.TryAdd(sha, 1))
-            {
-                this.histogram[sha] += 1;
-            }
-
             var shaString = sha.ToString();
             Stream value = GetObjectByPath(
                 Path.Combine(shaString.Substring(0, 2), shaString.Substring(2)),
@@ -165,6 +157,18 @@ namespace Quamotion.GitVersioning.Git
         }
 
         public Func<GitPack, GitPackCache> CacheFactory { get; set; } = (cache) => new GitPackMemoryCache(cache);
+
+        public string GetCacheStatistics()
+        {
+            StringBuilder builder = new StringBuilder();
+
+            foreach(var pack in this.packs.Value)
+            {
+                pack.GetCacheStatistics(builder);
+            }
+
+            return builder.ToString();
+        }
 
         public void Dispose()
         {

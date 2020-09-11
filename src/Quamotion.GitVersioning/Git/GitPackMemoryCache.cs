@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace Quamotion.GitVersioning.Git
 {
@@ -28,6 +29,11 @@ namespace Quamotion.GitVersioning.Git
             }
 
             return false;
+        }
+
+        public override void GetCacheStatistics(StringBuilder builder)
+        {
+            builder.AppendLine($"{this.cache.Count} items in cache");
         }
     }
 }

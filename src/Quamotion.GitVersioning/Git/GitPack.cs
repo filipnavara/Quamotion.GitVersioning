@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 
 namespace Quamotion.GitVersioning.Git
 {
@@ -104,6 +106,22 @@ namespace Quamotion.GitVersioning.Git
             {
                 this.indexReader.Value.Dispose();
             }
+        }
+
+        public void GetCacheStatistics(StringBuilder builder)
+        {
+            int histogramCount = 25;
+
+            builder.AppendLine($"Top {histogramCount} / {this.histogram.Count} items:");
+
+            foreach (var item in this.histogram.OrderByDescending(v => v.Value).Take(25))
+            {
+                builder.AppendLine($"  {item.Key}: {item.Value}");
+            }
+
+            builder.AppendLine();
+
+            this.cache.GetCacheStatistics(builder);
         }
 
         private GitPackIndexReader OpenIndex()

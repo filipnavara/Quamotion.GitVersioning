@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Text;
 
 namespace Quamotion.GitVersioning.Git
 {
@@ -17,6 +18,10 @@ namespace Quamotion.GitVersioning.Git
 
             stream.Dispose();
             return cacheStream;
+        }
+
+        public override void GetCacheStatistics(StringBuilder builder)
+        {
         }
 
         public override bool TryOpen(int offset, out Stream stream)
