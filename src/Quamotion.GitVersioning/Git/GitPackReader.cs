@@ -22,18 +22,18 @@ namespace Quamotion.GitVersioning.Git
             }
 
             // Read the signature
+#if DEBUG
             stream.Seek(0, SeekOrigin.Begin);
-            Span<byte> buffer = stackalloc byte[4];
+            Span<byte> buffer = stackalloc byte[12];
             stream.ReadAll(buffer);
 
-            Debug.Assert(buffer.SequenceEqual(Signature));
-            stream.ReadAll(buffer);
+            Debug.Assert(buffer.Slice(0, 4).SequenceEqual(Signature));
 
-            var versionNumber = BinaryPrimitives.ReadInt32BigEndian(buffer);
+            var versionNumber = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(4, 4));
             Debug.Assert(versionNumber == 2);
 
-            stream.ReadAll(buffer);
-            var numberOfObjects = BinaryPrimitives.ReadInt32BigEndian(buffer);
+            var numberOfObjects = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(8, 4));
+#endif
 
             stream.Seek(offset, SeekOrigin.Begin);
 
