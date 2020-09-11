@@ -65,10 +65,8 @@ namespace Quamotion.GitVersioning
 
                 bool versionChanged = false;
 
-                for (int i = 0; i < pathComponents.Length; i++)
+                for (int i = 0; i <= pathComponents.Length; i++)
                 {
-                    treeId = gitRepository.GetTreeEntry(treeId, pathComponents[i]);
-
                     if (treeId == null)
                     {
                         // A version.json file was added in this revision
@@ -76,34 +74,35 @@ namespace Quamotion.GitVersioning
                         versionChanged = true;
                         break;
                     }
-                    else
+
+                    if (knownTreeIds.Contains(treeId))
                     {
-                        this.logger.LogDebug("The tree ID for '{pathComponent}' is '{treeId}'", pathComponents[i], treeId);
+                        // Nothing changed, no need to recurse.
+                        this.logger.LogDebug("The tree ID did not change in this commit. Not inspecting the contents of the tree.");
+                        break;
+                    }
 
-                        if (knownTreeIds.Contains(treeId))
+                    knownTreeIds.Add(treeId);
+
+                    if (i == pathComponents.Length)
+                    {
+                        // Read the updated version information
+                        using (Stream versionStream = gitRepository.GetObjectBySha(treeId, "blob"))
                         {
-                            // Nothing changed, no need to recurse.
-                            this.logger.LogDebug("The tree ID did not change in this commit. Not inspecting the contents of the tree.");
-                            break;
-                        }
+                            var currentVersion = VersionFile.GetVersion(versionStream);
+                            this.logger.LogDebug("The version for this commit is '{version}'", currentVersion);
 
-                        knownTreeIds.Add(treeId);
-
-                        if (i == pathComponents.Length - 1)
-                        {
-                            // Read the updated version information
-                            using (Stream versionStream = gitRepository.GetObjectBySha(treeId, "blob"))
+                            versionChanged = currentVersion != version;
+                            if (versionChanged)
                             {
-                                var currentVersion = VersionFile.GetVersion(versionStream);
-                                this.logger.LogDebug("The version for this commit is '{version}'", currentVersion);
-
-                                versionChanged = currentVersion != version;
-                                if (versionChanged)
-                                {
-                                    this.logger.LogInformation("The version number changed from '{version}' to '{currentVersion}' in commit '{commit}'. Using this commit as the baseline.", version, currentVersion, commit.Sha);
-                                }
+                                this.logger.LogInformation("The version number changed from '{version}' to '{currentVersion}' in commit '{commit}'. Using this commit as the baseline.", version, currentVersion, commit.Sha);
                             }
                         }
+                    }
+                    else
+                    {
+                        treeId = gitRepository.GetTreeEntry(treeId, pathComponents[i]);
+                        this.logger.LogDebug("The tree ID for '{pathComponent}' is '{treeId}'", pathComponents[i], treeId);
                     }
                 }
 
