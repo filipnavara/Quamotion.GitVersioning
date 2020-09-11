@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO;
@@ -10,7 +11,6 @@ namespace Quamotion.GitVersioning.Git
         private static readonly byte[] Header = new byte[] { 0xff, 0x74, 0x4f, 0x63 };
         private readonly Stream stream;
         private bool initialized = false;
-        private int objectCount = 0;
 
         public GitPackIndexReader(Stream stream)
         {
@@ -71,21 +71,26 @@ namespace Quamotion.GitVersioning.Git
             // and end at                 4 (header) + 4 (version) + 256 * 4 (fanout table) + 20 * (packEnd)
             this.stream.Seek(4 + 4 + 256 * 4 + 20 * packStart, SeekOrigin.Begin);
 
-            // We should do a binary search instead
             var i = 0;
             var order = 0;
 
+            var tableSize = 20 * (packEnd - packStart + 1);
+            byte[] table = ArrayPool<byte>.Shared.Rent(tableSize);
+            this.stream.Seek(4 + 4 + 256 * 4 + 20 * packStart, SeekOrigin.Begin);
+            this.stream.Read(table.AsSpan(0, tableSize));
+
             Span<byte> current = stackalloc byte[20];
+
+            int originalPackStart = packStart;
+
+            packEnd -= originalPackStart;
+            packStart = 0;
 
             while (packStart <= packEnd)
             {
                 i = (packStart + packEnd) / 2;
-                var position = 4 + 4 + 256 * 4 + 20 * i;
 
-                this.stream.Seek(position, SeekOrigin.Begin);
-                this.stream.Read(current);
-
-                order = current.SequenceCompareTo(objectName);
+                order = table.AsSpan(20 * i, 20).SequenceCompareTo(objectName);
 
                 if (order < 0)
                 {
@@ -101,6 +106,8 @@ namespace Quamotion.GitVersioning.Git
                 }
             }
 
+            ArrayPool<byte>.Shared.Return(table);
+
             if (order != 0)
             {
                 return null;
@@ -108,7 +115,7 @@ namespace Quamotion.GitVersioning.Git
 
             // Get the offset value. It's located at:
             // 4 (header) + 4 (version) + 256 * 4 (fanout table) + 20 * objectCount (SHA1 object name table) + 4 * objectCount (CRC32) + 4 * i (offset values)
-            this.stream.Seek(4 + 4 + 256 * 4 + 20 * objectCount + 4 * objectCount + 4 * i, SeekOrigin.Begin);
+            this.stream.Seek(4 + 4 + 256 * 4 + 20 * objectCount + 4 * objectCount + 4 * (i + originalPackStart), SeekOrigin.Begin);
             this.stream.ReadAll(buffer);
 
             Debug.Assert(buffer[0] < 128); // The most significant bit should not be set; otherwise we have a 8-byte offset
