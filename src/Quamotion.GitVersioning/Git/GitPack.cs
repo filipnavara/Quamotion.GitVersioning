@@ -112,6 +112,7 @@ namespace Quamotion.GitVersioning.Git
         {
             int histogramCount = 25;
 
+            builder.AppendLine($"Git Pack {this.Name}:");
             builder.AppendLine($"Top {histogramCount} / {this.histogram.Count} items:");
 
             foreach (var item in this.histogram.OrderByDescending(v => v.Value).Take(25))
