@@ -1,9 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using Quamotion.GitVersioning.Git;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Linq;
 
 namespace Quamotion.GitVersioning
 {
@@ -12,6 +13,13 @@ namespace Quamotion.GitVersioning
         private readonly GitRepository gitRepository;
         private readonly string versionPath;
         private readonly ILogger logger;
+
+        // A list of trees which lead to a version.json file which is not semantically different
+        // than the current version.json file.
+        private readonly List<string> knownTreeIds = new List<string>();
+
+        // A list of all commits and their known git heights
+        private readonly Dictionary<string, int> knownGitHeights = new Dictionary<string, int>();
 
         public VersionResolver(GitRepository gitRepository, string versionPath, ILogger<VersionResolver> logger)
         {
@@ -29,57 +37,156 @@ namespace Quamotion.GitVersioning
             this.logger.LogInformation("The current version is '{version}'", version);
 
             var pathComponents = GetPathComponents(this.versionPath);
+            var headCommit = gitRepository.GetHeadCommit();
+            var commit = headCommit;
 
-            var commit = gitRepository.GetHeadCommit();
-            string[] treeIds = new string[pathComponents.Length];
+            Stack<string> commitsToAnalyze = new Stack<string>();
+            commitsToAnalyze.Push(commit.Sha);
 
-            int gitHeight = 0;
-
-            bool versionUpdated = false;
-
-            while (!versionUpdated)
+            while (commitsToAnalyze.Count > 0)
             {
-                this.logger.LogDebug("Analyzing commit '{sha}'. Current git height is '{gitHeight}'", commit.Sha, gitHeight);
+                // Analyze the current commit
+                this.logger.LogDebug("Analyzing commit '{sha}'. '{commitCount}' commits to analyze.", commit.Sha, commitsToAnalyze.Count);
 
-                gitHeight += 1;
+                var sha = commitsToAnalyze.Peek();
+
+                if (knownGitHeights.ContainsKey(sha))
+                {
+                    // The same commit can be pushed to the stack if two other commits had the same parent.
+                    commitsToAnalyze.Pop();
+                    continue;
+                }
+
+                commit = this.gitRepository.GetCommit(sha);
+
+                // If this commit has a version.json file which is semantically different from the current version.json, the git height
+                // of this commit is 1.
                 var treeId = commit.Tree;
+
+                bool versionChanged = false;
 
                 for (int i = 0; i < pathComponents.Length; i++)
                 {
                     treeId = gitRepository.GetTreeEntry(treeId, pathComponents[i]);
-                    this.logger.LogDebug("The tree ID for '{pathComponent}' is '{treeId}'", pathComponents[i], treeId);
 
-                    if (treeIds[i] == treeId)
+                    if (treeId == null)
                     {
-                        // Nothing changed, no need to recurse.
-                        this.logger.LogDebug("The tree ID did not change in this commit. Not inspecting the contents of the tree.");
+                        // A version.json file was added in this revision
+                        this.logger.LogDebug("The component '{pathComponent}' could not be found in this commit. Assuming the version.json file was not present.", pathComponents[i]);
+                        versionChanged = true;
                         break;
                     }
-
-                    treeIds[i] = treeId;
-
-                    if (i == pathComponents.Length - 1)
+                    else
                     {
-                        // Read the updated version information
-                        using (Stream versionStream = gitRepository.GetObjectBySha(treeId, "blob"))
+                        this.logger.LogDebug("The tree ID for '{pathComponent}' is '{treeId}'", pathComponents[i], treeId);
+
+                        if (knownTreeIds.Contains(treeId))
                         {
-                            var currentVersion = VersionFile.GetVersion(versionStream);
-                            this.logger.LogDebug("The version for this commit is '{version}'", currentVersion);
+                            // Nothing changed, no need to recurse.
+                            this.logger.LogDebug("The tree ID did not change in this commit. Not inspecting the contents of the tree.");
+                            break;
+                        }
 
-                            versionUpdated = currentVersion != version;
+                        knownTreeIds.Add(treeId);
 
-                            if (versionUpdated)
+                        if (i == pathComponents.Length - 1)
+                        {
+                            // Read the updated version information
+                            using (Stream versionStream = gitRepository.GetObjectBySha(treeId, "blob"))
                             {
-                                this.logger.LogInformation("The version number changed from '{version}' to '{currentVersion}' in commit '{commit}'. Using this commit as the baseline.", version, currentVersion, commit.Sha);
+                                var currentVersion = VersionFile.GetVersion(versionStream);
+                                this.logger.LogDebug("The version for this commit is '{version}'", currentVersion);
+
+                                versionChanged = currentVersion != version;
+                                if (versionChanged)
+                                {
+                                    this.logger.LogInformation("The version number changed from '{version}' to '{currentVersion}' in commit '{commit}'. Using this commit as the baseline.", version, currentVersion, commit.Sha);
+                                }
                             }
                         }
                     }
                 }
 
-                commit = gitRepository.GetCommit(commit.Parents[commit.Parents.Count - 1]);
+                if (versionChanged)
+                {
+                    this.knownGitHeights.Add(commit.Sha, 0);
+                    var poppedCommit = commitsToAnalyze.Pop();
+
+                    Debug.Assert(poppedCommit == commit.Sha);
+                }
+                else
+                {
+                    bool hasParentWithUnknownGitHeight = false;
+                    int currentHeight = -1;
+
+                    foreach (var parent in commit.Parents)
+                    {
+                        if (knownGitHeights.ContainsKey(parent))
+                        {
+                            var parentHeight = knownGitHeights[parent];
+                            if (parentHeight > currentHeight)
+                            {
+                                currentHeight = parentHeight + 1;
+                            }
+                        }
+                        else
+                        {
+                            commitsToAnalyze.Push(parent);
+                            hasParentWithUnknownGitHeight = true;
+                        }
+                    }
+
+                    if (!hasParentWithUnknownGitHeight)
+                    {
+                        // The current height of this commit is exact.
+                        this.knownGitHeights.Add(commit.Sha, currentHeight);
+                        var poppedCommit = commitsToAnalyze.Pop();
+
+                        Debug.Assert(poppedCommit == commit.Sha);
+                    }
+                }
             }
 
-            return $"{version}.{gitHeight}";
+            var gitHeight = this.knownGitHeights[headCommit.Sha];
+            return GetVersion(version, gitHeight);
+        }
+
+        /// <summary>
+        /// The placeholder that may appear in the <see cref="Version"/> property's <see cref="SemanticVersion.Prerelease"/>
+        /// to specify where the version height should appear in a computed semantic version.
+        /// </summary>
+        /// <remarks>
+        /// When this macro does not appear in the string, the version height is set as the first unspecified integer of the 4-integer version.
+        /// If all 4 integers in a version are specified, and the macro does not appear, the version height isn't inserted anywhere.
+        /// </remarks>
+        public const string VersionHeightPlaceholder = "{height}";
+
+        public const char SuffixDelimiter = '-';
+        public const char DigitDelimiter = '.';
+
+        public string GetVersion(string version, int gitHeight)
+        {
+            if (version.Contains(VersionHeightPlaceholder))
+            {
+                return version.Replace(VersionHeightPlaceholder, gitHeight.ToString());
+            }
+            else if (version.Contains(SuffixDelimiter))
+            {
+                var suffixOffset = version.IndexOf(SuffixDelimiter);
+
+                if (version.Take(suffixOffset).Count(c => c == DigitDelimiter) >= 2)
+                {
+                    return version;
+                }
+                else
+                {
+                    return $"{version.Substring(0, suffixOffset)}.{gitHeight}{version.Substring(suffixOffset)}";
+                }
+            }
+            else
+            {
+                return $"{version}.{gitHeight}";
+            }
         }
 
         private static string[] GetPathComponents(string path)
