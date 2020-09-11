@@ -58,7 +58,7 @@ namespace Quamotion.GitVersioning.Git
                 Span<byte> baseObjectId = stackalloc byte[20];
                 stream.ReadAll(baseObjectId);
 
-                Stream baseObject = pack.Repository.GetObjectBySha(GitObjectId.Parse(baseObjectId), objectType);
+                Stream baseObject = pack.Repository.GetObjectBySha(GitObjectId.Parse(baseObjectId), objectType, seekable: true);
 
                 var deltaStream = GitObjectStream.Create(stream, decompressedSize);
 

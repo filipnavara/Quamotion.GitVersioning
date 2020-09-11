@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace Quamotion.GitVersioning.Git
@@ -76,12 +78,24 @@ namespace Quamotion.GitVersioning.Git
             }
         }
 
-        public Stream GetObjectBySha(GitObjectId sha, string objectType)
+#if DEBUG
+        private Dictionary<GitObjectId, int> histogram = new Dictionary<GitObjectId, int>();
+#endif
+
+        public Stream GetObjectBySha(GitObjectId sha, string objectType, bool seekable = false)
         {
+#if DEBUG
+            if (!this.histogram.TryAdd(sha, 1))
+            {
+                this.histogram[sha] += 1;
+            }
+#endif
+
             var shaString = sha.ToString();
             Stream value = GetObjectByPath(
                 Path.Combine(shaString.Substring(0, 2), shaString.Substring(2)),
-                objectType);
+                objectType,
+                seekable);
 
             if (value != null)
             {
@@ -99,7 +113,7 @@ namespace Quamotion.GitVersioning.Git
             throw new GitException();
         }
 
-        public Stream GetObjectByPath(string path, string objectType)
+        public Stream GetObjectByPath(string path, string objectType, bool seekable)
         {
             string fullPath = Path.Combine(this.ObjectDirectory, path);
 
@@ -116,7 +130,14 @@ namespace Quamotion.GitVersioning.Git
                 throw new GitException();
             }
 
-            return new GitPackMemoryCacheStream(file);
+            if (seekable)
+            {
+                return new GitPackMemoryCacheStream(file);
+            }
+            else
+            {
+                return file;
+            }
         }
 
         public GitObjectId ResolveReference(string reference)
@@ -162,7 +183,21 @@ namespace Quamotion.GitVersioning.Git
         {
             StringBuilder builder = new StringBuilder();
 
-            foreach(var pack in this.packs.Value)
+#if DEBUG
+            int histogramCount = 25;
+
+            builder.AppendLine("Overall repository:");
+            builder.AppendLine($"Top {histogramCount} / {this.histogram.Count} items:");
+
+            foreach (var item in this.histogram.OrderByDescending(v => v.Value).Take(25))
+            {
+                builder.AppendLine($"  {item.Key}: {item.Value}");
+            }
+
+            builder.AppendLine();
+#endif
+
+            foreach (var pack in this.packs.Value)
             {
                 pack.GetCacheStatistics(builder);
             }
