@@ -15,6 +15,7 @@ namespace Quamotion.GitVersioning.Git
         public override Stream Add(int offset, Stream stream)
         {
             var cacheStream = new GitPackMemoryCacheStream(stream);
+            this.cache.Add(offset, cacheStream);
             return cacheStream;
         }
 
