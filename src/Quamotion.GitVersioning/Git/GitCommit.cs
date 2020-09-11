@@ -7,5 +7,10 @@ namespace Quamotion.GitVersioning.Git
         public string Tree { get; set; }
         public string Sha { get; set; }
         public List<string> Parents { get; set; }
+
+        public override string ToString()
+        {
+            return $"Git Commit: {this.Sha}";
+        }
     }
 }

@@ -139,6 +139,11 @@ namespace Quamotion.GitVersioning.Git
             }
         }
 
+        public override string ToString()
+        {
+            return $"Git Repository: {this.RootDirectory}";
+        }
+
         private GitPack[] LoadPacks()
         {
             var packDirectory = Path.Combine(this.ObjectDirectory, "pack/");
