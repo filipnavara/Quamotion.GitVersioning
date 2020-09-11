@@ -56,7 +56,7 @@ namespace Quamotion.GitVersioning.Git
 
             while (headerLength < buffer.Length)
             {
-                buffer[headerLength] = (byte)this.ReadByte();
+                this.Read(buffer.Slice(headerLength, 1));
 
                 if (buffer[headerLength] == 0)
                 {
