@@ -42,6 +42,8 @@ namespace Quamotion.GitVersioning.Git
                     this.stream.ReadAll(buffer);
                     this.fanoutTable[i] = BinaryPrimitives.ReadInt32BigEndian(buffer);
                 }
+
+                this.initialized = true;
             }
         }
 
