@@ -79,12 +79,13 @@ namespace Quamotion.GitVersioning.Git
 
         private static (GitPackObjectType, int) ReadObjectHeader(Stream stream)
         {
-            byte value = (byte)stream.ReadByte();
+            Span<byte> value = stackalloc byte[1];
+            stream.Read(value);
 
-            var type = (GitPackObjectType)((value & 0b0111_0000) >> 4);
-            int length = value & 0b_1111;
+            var type = (GitPackObjectType)((value[0] & 0b0111_0000) >> 4);
+            int length = value[0] & 0b_1111;
 
-            if ((value & 0b1000_0000) == 0)
+            if ((value[0] & 0b1000_0000) == 0)
             {
                 return (type, length);
             }
@@ -93,10 +94,10 @@ namespace Quamotion.GitVersioning.Git
 
             do
             {
-                value = (byte)stream.ReadByte();
-                length = length | ((value & 0b0111_1111) << shift);
+                stream.Read(value);
+                length = length | ((value[0] & 0b0111_1111) << shift);
                 shift += 7;
-            } while ((value & 0b1000_0000) != 0);
+            } while ((value[0] & 0b1000_0000) != 0);
 
             return (type, length);
         }
@@ -104,15 +105,15 @@ namespace Quamotion.GitVersioning.Git
         private static int ReadVariableLengthInteger(Stream stream)
         {
             int offset = -1;
-            byte b;
+            Span<byte> b = stackalloc byte[1];
 
             do
             {
                 offset++;
-                b = (byte)stream.ReadByte();
-                offset = (offset << 7) + (b & 127);
+                stream.Read(b);
+                offset = (offset << 7) + (b[0] & 127);
             }
-            while ((b & (byte)128) != 0);
+            while ((b[0] & (byte)128) != 0);
 
             return offset;
         }
@@ -121,15 +122,17 @@ namespace Quamotion.GitVersioning.Git
         {
             int value = initialValue;
             int currentBit = initialBit;
+            Span<byte> read = stackalloc byte[1];
+
             while (true)
             {
-                var read = (byte)stream.ReadByte();
+                stream.Read(read);
 
-                int byteRead = (read & 0b_0111_1111) << currentBit;
+                int byteRead = (read[0] & 0b_0111_1111) << currentBit;
                 value |= byteRead;
                 currentBit += 7;
 
-                if (read < 128)
+                if (read[0] < 128)
                 {
                     break;
                 }
