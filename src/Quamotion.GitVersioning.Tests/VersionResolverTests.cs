@@ -1,4 +1,5 @@
-﻿using Nerdbank.GitVersioning;
+﻿using Microsoft.Extensions.Logging.Abstractions;
+using Nerdbank.GitVersioning;
 using Quamotion.GitVersioning.Git;
 using System;
 using System.IO;
@@ -31,7 +32,7 @@ namespace Quamotion.GitVersioning.Tests
                     repositoryName);
 
             GitRepository repository = new GitRepository(path);
-            VersionResolver resolver = new VersionResolver(repository, versionPath, output.BuildLoggerFor<VersionResolver>());
+            VersionResolver resolver = new WalkingVersionResolver(repository, versionPath, output.BuildLoggerFor<VersionResolver>());
 
             var version = resolver.GetVersion();
             Assert.Equal(expectedVersion, version);
