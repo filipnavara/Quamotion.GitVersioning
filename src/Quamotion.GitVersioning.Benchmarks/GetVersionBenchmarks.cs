@@ -9,7 +9,7 @@ namespace Quamotion.GitVersioning.Benchmarks
 {
     public class GetVersionBenchmarks
     {
-        [Params("xunit;version.json", "Cuemon;version.json", "SuperSocket;version.json")]
+        [Params("xunit;version.json", "Cuemon;version.json", "SuperSocket;version.json", "NerdBank.GitVersioning;version.json")]
         public string TestData;
 
         public string RepositoryName => TestData.Split(';')[0];
@@ -22,12 +22,22 @@ namespace Quamotion.GitVersioning.Benchmarks
                 RepositoryName);
 
         [Benchmark]
-        public void GetVersionWithMemoryCacheBenchmark()
+        public void GetVersionWithWalkingResolverBenchmark()
         {
             GitRepository repository = new GitRepository(RepositoryPath);
             repository.CacheFactory = (pack) => new GitPackMemoryCache(pack);
 
-            VersionResolver resolver = new VersionResolver(repository, VersionPath, NullLogger<VersionResolver>.Instance);
+            VersionResolver resolver = new WalkingVersionResolver(repository, VersionPath, NullLogger<VersionResolver>.Instance);
+            this.Version = resolver.GetVersion();
+        }
+
+        [Benchmark]
+        public void GetVersionWithSimpleResolverBenchmark()
+        {
+            GitRepository repository = new GitRepository(RepositoryPath);
+            repository.CacheFactory = (pack) => new GitPackMemoryCache(pack);
+
+            VersionResolver resolver = new SimpleVersionResolver(repository, VersionPath, NullLogger<VersionResolver>.Instance);
             this.Version = resolver.GetVersion();
         }
 
