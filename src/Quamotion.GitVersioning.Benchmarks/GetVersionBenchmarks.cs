@@ -9,7 +9,13 @@ namespace Quamotion.GitVersioning.Benchmarks
 {
     public class GetVersionBenchmarks
     {
-        [Params("xunit;version.json", "Cuemon;version.json", "SuperSocket;version.json", "NerdBank.GitVersioning;version.json")]
+        [Params(
+            "xunit;version.json",
+            "Cuemon;version.json",
+            "SuperSocket;version.json",
+            "NerdBank.GitVersioning;version.json",
+            "WebDriver;src/version.json"
+            )]
         public string TestData;
 
         public string RepositoryName => TestData.Split(';')[0];
@@ -41,10 +47,10 @@ namespace Quamotion.GitVersioning.Benchmarks
             this.Version = resolver.GetVersion();
         }
 
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         public void GetVersionWithNbgvBenchmark()
         {
-            var oracleA = VersionOracle.Create(RepositoryPath);
+            var oracleA = VersionOracle.Create(RepositoryPath, Path.GetDirectoryName(VersionPath));
             this.Version = oracleA.Version.ToString();
         }
 
