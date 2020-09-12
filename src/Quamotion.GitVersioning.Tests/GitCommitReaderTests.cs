@@ -53,7 +53,7 @@ namespace Quamotion.GitVersioning.Tests
             {
                 var commit = GitCommitReader.Read(commitStream, GitObjectId.Parse("0867525d2ef57e38c20cc1bec4068d01d9c74310"));
 
-                Assert.Single(commit.Parents, "3ac48e11b5e3c011f0bec13adef2fbd1ba63f03a");
+                Assert.Single(commit.Parents, GitObjectId.Parse("3ac48e11b5e3c011f0bec13adef2fbd1ba63f03a"));
             }
         }
     }
