@@ -6,7 +6,22 @@ namespace Quamotion.GitVersioning.Benchmarks
     {
         public static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<GetVersionBenchmarks>();
+            bool isBenchmark = false;
+
+            if (isBenchmark)
+            {
+                var summary = BenchmarkRunner.Run<GetVersionBenchmarks>();
+            }
+            else
+            {
+                for (int i = 0; i < 500; i++)
+                {
+                    var benchmark = new GetVersionBenchmarks();
+                    benchmark.TestData = "WebDriver;src/version.json";
+
+                    benchmark.GetVersionManaged();
+                }
+            }
         }
     }
 }
