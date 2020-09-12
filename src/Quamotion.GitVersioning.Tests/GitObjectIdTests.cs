@@ -1,7 +1,6 @@
 ﻿using Quamotion.GitVersioning.Git;
 using System;
 using System.Linq;
-using System.Runtime.Intrinsics;
 using System.Text;
 using Xunit;
 
