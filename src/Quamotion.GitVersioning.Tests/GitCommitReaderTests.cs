@@ -1,4 +1,5 @@
-﻿using Quamotion.GitVersioning.Git;
+﻿using Microsoft.Extensions.Logging.Abstractions;
+using Quamotion.GitVersioning.Git;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,7 +21,7 @@ namespace Quamotion.GitVersioning.Tests
             using (var compressedFile = File.OpenRead(Path.Combine(RepositoryPath, "fork1/.git/objects/22/abd96d9c295c43ba96c60d2f44b52697c07586")))
             using (var commitStream = GitObjectStream.Create(compressedFile, -1))
             {
-                commitStream.ReadObjectTypeAndLength();
+                commitStream.ReadObjectTypeAndLength("commit");
 
                 var commit = GitCommitReader.Read(commitStream, GitObjectId.Parse("22abd96d9c295c43ba96c60d2f44b52697c07586"));
 

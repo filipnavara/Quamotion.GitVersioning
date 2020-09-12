@@ -137,7 +137,7 @@ namespace Quamotion.GitVersioning.Git
             }
 
             var file = GitObjectStream.Create(compressedFile, -1);
-            file.ReadObjectTypeAndLength();
+            file.ReadObjectTypeAndLength(objectType);
 
             if (string.CompareOrdinal(file.ObjectType, objectType) != 0)
             {

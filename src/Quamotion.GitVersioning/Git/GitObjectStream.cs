@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,11 +50,21 @@ namespace Quamotion.GitVersioning.Git
             return new GitObjectStream(stream, length);
         }
 
-        public void ReadObjectTypeAndLength()
+        public void ReadObjectTypeAndLength(string objectType)
         {
             Span<byte> buffer = stackalloc byte[128];
+            this.Read(buffer.Slice(0, objectType.Length + 1));
+
+#if DEBUG
+            var actualObjectType = Encoding.ASCII.GetString(buffer.Slice(0, objectType.Length));
+            Debug.Assert(objectType == actualObjectType);
+            Debug.Assert(buffer[objectType.Length] == ' ');
+#endif
+
+            this.ObjectType = objectType;
 
             int headerLength = 0;
+            this.length = 0;
 
             while (headerLength < buffer.Length)
             {
@@ -63,16 +75,11 @@ namespace Quamotion.GitVersioning.Git
                     break;
                 }
 
+                // Direct conversion from ASCII to int
+                this.length = (10 * this.length) + (buffer[headerLength] - (byte)'0');
+
                 headerLength += 1;
             }
-
-            // Determine the header length, file length and make sure the object type matches the expected
-            // object type.
-            int objectTypeEnd = buffer.IndexOf((byte)' ');
-            this.ObjectType = GitRepository.Encoding.GetString(buffer.Slice(0, objectTypeEnd));
-
-            var lengthString = GitRepository.Encoding.GetString(buffer.Slice(objectTypeEnd + 1, headerLength - objectTypeEnd - 1));
-            this.length = long.Parse(lengthString);
 
             this.position = 0;
         }
