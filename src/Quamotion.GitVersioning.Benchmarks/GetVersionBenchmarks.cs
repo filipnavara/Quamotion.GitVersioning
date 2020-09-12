@@ -28,7 +28,7 @@ namespace Quamotion.GitVersioning.Benchmarks
                 RepositoryName);
 
         [Benchmark]
-        public void GetVersionWithWalkingResolverBenchmark()
+        public void GetVersionManaged()
         {
             GitRepository repository = new GitRepository(RepositoryPath);
             repository.CacheFactory = (pack) => new GitPackMemoryCache(pack);
@@ -37,18 +37,8 @@ namespace Quamotion.GitVersioning.Benchmarks
             this.Version = resolver.GetVersion();
         }
 
-        [Benchmark]
-        public void GetVersionWithSimpleResolverBenchmark()
-        {
-            GitRepository repository = new GitRepository(RepositoryPath);
-            repository.CacheFactory = (pack) => new GitPackMemoryCache(pack);
-
-            VersionResolver resolver = new SimpleVersionResolver(repository, VersionPath, NullLogger<VersionResolver>.Instance);
-            this.Version = resolver.GetVersion();
-        }
-
         [Benchmark(Baseline = true)]
-        public void GetVersionWithNbgvBenchmark()
+        public void GetversionLibGit2()
         {
             var oracleA = VersionOracle.Create(RepositoryPath, Path.GetDirectoryName(VersionPath));
             this.Version = oracleA.Version.ToString();
