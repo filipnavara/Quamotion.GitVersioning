@@ -105,15 +105,15 @@ namespace Quamotion.GitVersioning.Git
         private static int ReadVariableLengthInteger(Stream stream)
         {
             int offset = -1;
-            Span<byte> b = stackalloc byte[1];
+            int b;
 
             do
             {
                 offset++;
-                stream.Read(b);
-                offset = (offset << 7) + (b[0] & 127);
+                b = stream.ReadByte();
+                offset = (offset << 7) + (b & 127);
             }
-            while ((b[0] & (byte)128) != 0);
+            while ((b & (byte)128) != 0);
 
             return offset;
         }
@@ -122,17 +122,15 @@ namespace Quamotion.GitVersioning.Git
         {
             int value = initialValue;
             int currentBit = initialBit;
-            Span<byte> read = stackalloc byte[1];
+            int read;
 
             while (true)
             {
-                stream.Read(read);
-
-                int byteRead = (read[0] & 0b_0111_1111) << currentBit;
-                value |= byteRead;
+                read = stream.ReadByte();
+                value |= (read & 0b_0111_1111) << currentBit;
                 currentBit += 7;
 
-                if (read[0] < 128)
+                if (read < 128)
                 {
                     break;
                 }
