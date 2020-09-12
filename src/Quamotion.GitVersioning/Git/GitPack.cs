@@ -9,6 +9,7 @@ namespace Quamotion.GitVersioning.Git
     public class GitPack : IDisposable
     {
         private readonly string name;
+        private readonly string packPath;
         private readonly GitRepository repository;
         private readonly GitPackCache cache;
         private readonly Dictionary<GitObjectId, int> offsets = new Dictionary<GitObjectId, int>();
@@ -20,6 +21,7 @@ namespace Quamotion.GitVersioning.Git
             this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
             this.name = name ?? throw new ArgumentNullException(nameof(name));
             this.indexReader = new Lazy<GitPackIndexReader>(OpenIndex);
+            this.packPath = Path.Combine(this.repository.ObjectDirectory, "pack", $"{this.name}.pack");
             this.cache = repository.CacheFactory(this);
         }
 
@@ -94,7 +96,7 @@ namespace Quamotion.GitVersioning.Git
                     throw new GitException();
             }
 
-            Stream packStream = File.OpenRead(Path.Combine(this.repository.ObjectDirectory, "pack", $"{this.name}.pack"));
+            var packStream = File.OpenRead(this.packPath);
             Stream objectStream = GitPackReader.GetObject(this, packStream, offset, objectType, packObjectType);
 
             return this.cache.Add(offset, objectStream);
