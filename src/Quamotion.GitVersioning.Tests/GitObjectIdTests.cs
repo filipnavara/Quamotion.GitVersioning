@@ -14,11 +14,10 @@ namespace Quamotion.GitVersioning.Tests
         {
             var hash = GitObjectId.Parse("b62ca2eb0a45dc42a4333a83b35cc3f70aac3cc9");
             byte[] expected = new byte[] { 0xb6, 0x2c, 0xa2, 0xeb, 0x0a, 0x45, 0xdc, 0x42, 0xa4, 0x33, 0x3a, 0x83, 0xb3, 0x5c, 0xc3, 0xf7, 0x0a, 0xac, 0x3c, 0xc9 };
+            byte[] actual = new byte[20];
+            hash.CopyTo(actual);
 
-            for (int i = 0; i < expected.Length; i++)
-            {
-                Assert.Equal(expected[i], hash.Value.GetElement(i));
-            }
+            Assert.True(actual.SequenceEqual(expected));
         }
 
         [Fact]
@@ -28,11 +27,10 @@ namespace Quamotion.GitVersioning.Tests
             byte[] expected = new byte[] { 0xb6, 0x2c, 0xa2, 0xeb, 0x0a, 0x45, 0xdc, 0x42, 0xa4, 0x33, 0x3a, 0x83, 0xb3, 0x5c, 0xc3, 0xf7, 0x0a, 0xac, 0x3c, 0xc9 };
 
             var hash = GitObjectId.ParseHex(hex);
+            byte[] actual = new byte[20];
+            hash.CopyTo(actual);
 
-            for (int i = 0; i < expected.Length; i++)
-            {
-                Assert.Equal(expected[i], hash.Value.GetElement(i));
-            }
+            Assert.True(actual.SequenceEqual(expected));
         }
 
         [Fact]
