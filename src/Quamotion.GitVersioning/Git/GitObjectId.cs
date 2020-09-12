@@ -153,25 +153,25 @@ namespace Quamotion.GitVersioning.Git
         {
             if (this.sha == null)
             {
-                this.sha = this.CreateString();
+                this.sha = this.CreateString(0, 20);
             }
 
             return this.sha;
         }
 
-        public string CreateString()
+        public string CreateString(int start, int length)
         {
             // Inspired from http://stackoverflow.com/questions/623104/c-byte-to-hex-string/3974535#3974535
-            const int lengthInNibbles = 40;
+            int lengthInNibbles = length * 2;
             var c = new char[lengthInNibbles];
 
             for (int i = 0; i < (lengthInNibbles & -2); i++)
             {
-                int index0 = i >> 1;
-                var b = ((byte)(this.value.GetElement(index0) >> 4));
+                int index0 = + i >> 1;
+                var b = ((byte)(this.value.GetElement(start + index0) >> 4));
                 c[i++] = hexDigits[b];
 
-                b = ((byte)(this.value.GetElement(index0) & 0x0F));
+                b = ((byte)(this.value.GetElement(start + index0) & 0x0F));
                 c[i] = hexDigits[b];
             }
 

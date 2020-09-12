@@ -59,9 +59,11 @@ namespace Quamotion.GitVersioning
             }
         }
 
-        protected static string[] GetPathComponents(string path)
+        protected static byte[][] GetPathComponents(string path)
         {
-            return path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                .Select(p => GitRepository.Encoding.GetBytes(p))
+                .ToArray();
         }
     }
 }

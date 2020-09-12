@@ -48,13 +48,26 @@ namespace Quamotion.GitVersioning.Tests
         }
 
         [Fact]
+        public void ToStringTest()
+        {
+            var x = GitObjectId.Parse("b62ca2eb0a45dc42a4333a83b35cc3f70aac3cc9");
+            var x2 = GitObjectId.Parse(new byte[] { 0xb6, 0x2c, 0xa2, 0xeb, 0x0a, 0x45, 0xdc, 0x42, 0xa4, 0x33, 0x3a, 0x83, 0xb3, 0x5c, 0xc3, 0xf7, 0x0a, 0xac, 0x3c, 0xc9 });
+
+            Assert.Equal("b62ca2eb0a45dc42a4333a83b35cc3f70aac3cc9", x.ToString());
+            Assert.Equal("b62ca2eb0a45dc42a4333a83b35cc3f70aac3cc9", x2.ToString());
+        }
+
+        [Fact]
         public void CreateStringTest()
         {
             var x = GitObjectId.Parse("b62ca2eb0a45dc42a4333a83b35cc3f70aac3cc9");
             var x2 = GitObjectId.Parse(new byte[] { 0xb6, 0x2c, 0xa2, 0xeb, 0x0a, 0x45, 0xdc, 0x42, 0xa4, 0x33, 0x3a, 0x83, 0xb3, 0x5c, 0xc3, 0xf7, 0x0a, 0xac, 0x3c, 0xc9 });
 
-            Assert.Equal("b62ca2eb0a45dc42a4333a83b35cc3f70aac3cc9", x.CreateString());
-            Assert.Equal("b62ca2eb0a45dc42a4333a83b35cc3f70aac3cc9", x2.CreateString());
+            Assert.Equal("b6", x.CreateString(0, 1));
+            Assert.Equal("2ca2eb0a45dc42a4333a83b35cc3f70aac3cc9", x.CreateString(1, 19));
+
+            Assert.Equal("b6", x2.CreateString(0, 1));
+            Assert.Equal("2ca2eb0a45dc42a4333a83b35cc3f70aac3cc9", x2.CreateString(1, 19));
         }
 
         [Fact]

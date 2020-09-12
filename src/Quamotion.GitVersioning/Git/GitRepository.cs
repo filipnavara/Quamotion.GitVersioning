@@ -70,11 +70,11 @@ namespace Quamotion.GitVersioning.Git
             }
         }
 
-        public GitObjectId GetTreeEntry(GitObjectId treeId, string nodeName)
+        public GitObjectId GetTreeEntry(GitObjectId treeId, ReadOnlySpan<byte> nodeName)
         {
             using (Stream treeStream = this.GetObjectBySha(treeId, "tree"))
             {
-                return GitTreeStreamingReader.FindNode(treeStream, Encoding.GetBytes(nodeName));
+                return GitTreeStreamingReader.FindNode(treeStream, nodeName);
             }
         }
 
@@ -91,11 +91,7 @@ namespace Quamotion.GitVersioning.Git
             }
 #endif
 
-            var shaString = sha.ToString();
-            Stream value = GetObjectByPath(
-                Path.Combine(shaString.Substring(0, 2), shaString.Substring(2)),
-                objectType,
-                seekable);
+            Stream value = GetObjectByPath(sha, objectType, seekable);
 
             if (value != null)
             {
@@ -113,9 +109,9 @@ namespace Quamotion.GitVersioning.Git
             throw new GitException();
         }
 
-        public Stream GetObjectByPath(string path, string objectType, bool seekable)
+        public Stream GetObjectByPath(GitObjectId sha, string objectType, bool seekable)
         {
-            string fullPath = Path.Combine(this.ObjectDirectory, path);
+            var fullPath = Path.Combine(this.ObjectDirectory, sha.CreateString(0, 1), sha.CreateString(1, 19));
 
             if (!FileHelpers.TryOpen(fullPath, out Stream compressedFile))
             {
