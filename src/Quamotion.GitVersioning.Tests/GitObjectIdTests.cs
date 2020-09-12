@@ -55,6 +55,19 @@ namespace Quamotion.GitVersioning.Tests
         }
 
         [Fact]
+        public void CreateUnicodeStringTest()
+        {
+            var id = GitObjectId.Parse(new byte[] { 0xb6, 0x2c, 0xa2, 0xeb, 0x0a, 0x45, 0xdc, 0x42, 0xa4, 0x33, 0x3a, 0x83, 0xb3, 0x5c, 0xc3, 0xf7, 0x0a, 0xac, 0x3c, 0xc9 });
+
+            Span<byte> value = stackalloc byte[40 * 2 + 2];
+            id.CreateUnicodeString(0, 1, value.Slice(0, 4));
+            Encoding.Unicode.GetBytes("/".ToCharArray().AsSpan(), value.Slice(4, 2));
+            id.CreateUnicodeString(1, 19, value.Slice(6));
+
+            Assert.Equal("b6/2ca2eb0a45dc42a4333a83b35cc3f70aac3cc9", Encoding.Unicode.GetString(value));
+        }
+
+        [Fact]
         public void CreateStringTest()
         {
             var x = GitObjectId.Parse("b62ca2eb0a45dc42a4333a83b35cc3f70aac3cc9");

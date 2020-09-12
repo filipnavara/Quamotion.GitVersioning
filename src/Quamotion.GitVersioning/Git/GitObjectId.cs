@@ -7,6 +7,7 @@ namespace Quamotion.GitVersioning.Git
     public unsafe struct GitObjectId : IEquatable<GitObjectId>
     {
         private const string hexDigits = "0123456789abcdef";
+        private readonly static byte[] hexBytes = new byte[] { (byte)'0', (byte)'1', (byte)'2', (byte)'3', (byte)'4', (byte)'5', (byte)'6', (byte)'7', (byte)'8', (byte)'9', (byte)'a', (byte)'b', (byte)'c', (byte)'d', (byte)'e', (byte)'f' };
         private const int NativeSize = 20;
         public fixed byte value[NativeSize];
         private string sha;
@@ -142,6 +143,23 @@ namespace Quamotion.GitVersioning.Git
             }
 
             return new string(c);
+        }
+        public void CreateUnicodeString(int start, int length, Span<byte> bytes)
+        {
+            // Inspired from http://stackoverflow.com/questions/623104/c-byte-to-hex-string/3974535#3974535
+            int lengthInNibbles = length * 2;
+
+            for (int i = 0; i < (lengthInNibbles & -2); i++)
+            {
+                int index0 = +i >> 1;
+                var b = ((byte)(this.value[start + index0] >> 4));
+                bytes[2 * i + 1] = 0;
+                bytes[2 * i++] = hexBytes[b];
+
+                b = ((byte)(this.value[start + index0] & 0x0F));
+                bytes[2 * i + 1] = 0;
+                bytes[2 * i] = hexBytes[b];
+            }
         }
 
         private byte[] array;

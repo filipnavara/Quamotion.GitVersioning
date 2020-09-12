@@ -11,6 +11,8 @@ namespace Quamotion.GitVersioning.Git
         private const string HeadFileName = "HEAD";
         private const string GitDirectoryName = ".git";
         private readonly Lazy<GitPack[]> packs;
+        private readonly byte[] objectPathBuffer;
+        private readonly int objectDirLength;
 
         public GitRepository(string rootDirectory)
             : this(rootDirectory, Path.Combine(rootDirectory, GitDirectoryName))
@@ -37,6 +39,21 @@ namespace Quamotion.GitVersioning.Git
                 this.ObjectDirectory = Path.Combine(this.GitDirectory, "objects");
             }
 
+
+            this.objectDirLength = Encoding.Unicode.GetByteCount(this.ObjectDirectory);
+            int pathLength = this.objectDirLength;
+            pathLength += 2; // '/'
+            pathLength += 4; // 'xy'
+            pathLength += 2; // '/'
+            pathLength += 76; // 19 bytes * 2 chars / byte * 2 bytes / char
+            pathLength += 2; // Trailing 0 character
+            this.objectPathBuffer = new byte[pathLength];
+
+            Encoding.Unicode.GetBytes(this.ObjectDirectory, this.objectPathBuffer.AsSpan(0, this.objectDirLength));
+            Encoding.Unicode.GetBytes("/", this.objectPathBuffer.AsSpan(this.objectDirLength, 2));
+            Encoding.Unicode.GetBytes("/".ToCharArray().AsSpan(), this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4, 2));
+            this.objectPathBuffer[pathLength - 2] = 0; // Make sure to initialize with zeros
+            this.objectPathBuffer[pathLength - 1] = 0;
 
             this.packs = new Lazy<GitPack[]>(LoadPacks);
         }
@@ -111,9 +128,10 @@ namespace Quamotion.GitVersioning.Git
 
         public Stream GetObjectByPath(GitObjectId sha, string objectType, bool seekable)
         {
-            var fullPath = Path.Combine(this.ObjectDirectory, sha.CreateString(0, 1), sha.CreateString(1, 19));
+            sha.CreateUnicodeString(0, 1, this.objectPathBuffer.AsSpan(this.objectDirLength + 2, 4));
+            sha.CreateUnicodeString(1, 19, this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4 + 2));
 
-            if (!FileHelpers.TryOpen(fullPath, out Stream compressedFile))
+            if (!FileHelpers.TryOpen(this.objectPathBuffer, out Stream compressedFile))
             {
                 return null;
             }
