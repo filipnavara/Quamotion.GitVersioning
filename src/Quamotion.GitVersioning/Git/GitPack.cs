@@ -96,10 +96,25 @@ namespace Quamotion.GitVersioning.Git
                     throw new GitException();
             }
 
-            var packStream = File.OpenRead(this.packPath);
+            var packStream = this.GetPackStream();
             Stream objectStream = GitPackReader.GetObject(this, packStream, offset, objectType, packObjectType);
 
             return this.cache.Add(offset, objectStream);
+        }
+
+        private readonly Queue<GitPackPooledStream> pooledStreams = new Queue<GitPackPooledStream>();
+
+        private GitPackPooledStream GetPackStream()
+        {
+            if (pooledStreams.TryDequeue(out var result))
+            {
+                result.Seek(0, SeekOrigin.Begin);
+                return result;
+            }
+
+            var fileStream = File.OpenRead(this.packPath);
+            var pooledStream = new GitPackPooledStream(fileStream, this.pooledStreams);
+            return pooledStream;
         }
 
         public void Dispose()

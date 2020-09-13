@@ -1,19 +1,20 @@
 ﻿using System;
 using System.Buffers;
 using System.IO;
-using System.Linq;
 
 namespace Quamotion.GitVersioning.Git
 {
     class GitPackMemoryCacheStream : Stream
     {
-        private readonly Stream stream;
+        private Stream stream;
         private readonly MemoryStream cacheStream = new MemoryStream();
         private long position = 0;
+        private long length;
 
         public GitPackMemoryCacheStream(Stream stream)
         {
             this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
+            this.length = this.stream.Length;
         }
 
         public override bool CanRead => true;
@@ -22,7 +23,7 @@ namespace Quamotion.GitVersioning.Git
 
         public override bool CanWrite => false;
 
-        public override long Length => stream.Length;
+        public override long Length => this.length;
 
         public override long Position
         {
@@ -37,7 +38,8 @@ namespace Quamotion.GitVersioning.Git
 
         public override int Read(Span<byte> buffer)
         {
-            if (this.cacheStream.Position + buffer.Length >= this.cacheStream.Length)
+            if (this.cacheStream.Length < this.length
+                && this.cacheStream.Position + buffer.Length > this.cacheStream.Length)
             {
                 var currentPosition = this.cacheStream.Position;
                 var toRead = (int)(buffer.Length - this.cacheStream.Length + this.cacheStream.Position);
@@ -45,6 +47,7 @@ namespace Quamotion.GitVersioning.Git
                 this.cacheStream.Seek(0, SeekOrigin.End);
                 this.cacheStream.Write(buffer.Slice(0, toRead));
                 this.cacheStream.Seek(currentPosition, SeekOrigin.Begin);
+                this.DisposeStreamIfRead();
             }
 
             return this.cacheStream.Read(buffer);
@@ -70,6 +73,8 @@ namespace Quamotion.GitVersioning.Git
                 this.cacheStream.Seek(0, SeekOrigin.End);
                 this.cacheStream.Write(buffer.AsSpan(0, toRead));
                 ArrayPool<byte>.Shared.Return(buffer);
+
+                this.DisposeStreamIfRead();
                 return this.cacheStream.Position;
             }
             else
@@ -86,6 +91,15 @@ namespace Quamotion.GitVersioning.Git
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw new NotSupportedException();
+        }
+
+        private void DisposeStreamIfRead()
+        {
+            if(this.cacheStream.Length == this.stream.Length)
+            {
+                this.stream.Dispose();
+                this.stream = null;
+            }
         }
     }
 }
