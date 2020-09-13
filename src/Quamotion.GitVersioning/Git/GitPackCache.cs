@@ -15,10 +15,10 @@ namespace Quamotion.GitVersioning.Git
 
         public GitPack Pack => this.pack;
 
-        public abstract bool TryOpen(int offset, out Stream stream);
+        public abstract bool TryOpen(long offset, out Stream stream);
 
         public abstract void GetCacheStatistics(StringBuilder builder);
 
-        public abstract Stream Add(int offset, Stream stream);
+        public abstract Stream Add(long offset, Stream stream);
     }
 }

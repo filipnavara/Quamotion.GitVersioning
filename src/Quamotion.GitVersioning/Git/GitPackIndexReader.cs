@@ -52,7 +52,7 @@ namespace Quamotion.GitVersioning.Git
             this.stream.Dispose();
         }
 
-        public int? GetOffset(GitObjectId objectId)
+        public long? GetOffset(GitObjectId objectId)
         {
             this.Initialize();
 
@@ -118,9 +118,21 @@ namespace Quamotion.GitVersioning.Git
             this.stream.Seek(4 + 4 + 256 * 4 + 20 * objectCount + 4 * objectCount + 4 * (i + originalPackStart), SeekOrigin.Begin);
             this.stream.ReadAll(buffer);
 
-            Debug.Assert(buffer[0] < 128); // The most significant bit should not be set; otherwise we have a 8-byte offset
-            var offset = BinaryPrimitives.ReadInt32BigEndian(buffer);
-            return offset;
+            // If the most significant bit is not set we have a 4-byte offset
+            if (buffer[0] < 128)
+            {
+                var offset = BinaryPrimitives.ReadInt32BigEndian(buffer);
+                return offset;
+            }
+            
+            // 8-byte offset
+            buffer[0] &= 0x7f;
+            var offset64 = BinaryPrimitives.ReadInt32BigEndian(buffer);
+            Span<byte> buffer64 = stackalloc byte[8];
+            // 4 (header) + 4 (version) + 256 * 4 (fanout table) + 20 * objectCount (SHA1 object name table) + 4 * objectCount (CRC32) + 4 * objectCount (offset values) + 8 * offset64
+            this.stream.Seek(4 + 4 + 256 * 4 + 20 * objectCount + 4 * objectCount + 4 * objectCount + 8 * offset64, SeekOrigin.Begin);
+            this.stream.ReadAll(buffer64);
+            return BinaryPrimitives.ReadInt64BigEndian(buffer64);
         }
     }
 }

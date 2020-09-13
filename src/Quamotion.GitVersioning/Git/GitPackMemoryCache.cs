@@ -6,21 +6,21 @@ namespace Quamotion.GitVersioning.Git
 {
     public class GitPackMemoryCache : GitPackCache
     {
-        private readonly Dictionary<int, Stream> cache = new Dictionary<int, Stream>();
+        private readonly Dictionary<long, Stream> cache = new Dictionary<long, Stream>();
 
         public GitPackMemoryCache(GitPack pack)
             : base(pack)
         {
         }
 
-        public override Stream Add(int offset, Stream stream)
+        public override Stream Add(long offset, Stream stream)
         {
             var cacheStream = new GitPackMemoryCacheStream(stream);
             this.cache.Add(offset, cacheStream);
             return cacheStream;
         }
 
-        public override bool TryOpen(int offset, out Stream stream)
+        public override bool TryOpen(long offset, out Stream stream)
         {
             if (this.cache.TryGetValue(offset, out stream))
             {

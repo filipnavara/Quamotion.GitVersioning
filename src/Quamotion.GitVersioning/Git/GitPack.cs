@@ -12,7 +12,7 @@ namespace Quamotion.GitVersioning.Git
         private readonly string packPath;
         private readonly GitRepository repository;
         private readonly GitPackCache cache;
-        private readonly Dictionary<GitObjectId, int> offsets = new Dictionary<GitObjectId, int>();
+        private readonly Dictionary<GitObjectId, long> offsets = new Dictionary<GitObjectId, long>();
 
         private Lazy<GitPackIndexReader> indexReader;
 
@@ -44,9 +44,9 @@ namespace Quamotion.GitVersioning.Git
             }
         }
 
-        public int? GetOffset(GitObjectId objectId)
+        public long? GetOffset(GitObjectId objectId)
         {
-            if (this.offsets.TryGetValue(objectId, out int cachedOffset))
+            if (this.offsets.TryGetValue(objectId, out var cachedOffset))
             {
                 return cachedOffset;
             }
@@ -62,9 +62,9 @@ namespace Quamotion.GitVersioning.Git
             return offset;
         }
 
-        private readonly Dictionary<int, int> histogram = new Dictionary<int, int>();
+        private readonly Dictionary<long, int> histogram = new Dictionary<long, int>();
 
-        public Stream GetObject(int offset, string objectType)
+        public Stream GetObject(long offset, string objectType)
         {
             if (!histogram.TryAdd(offset, 1))
             {
