@@ -9,7 +9,7 @@ namespace Quamotion.GitVersioning.Git
     {
         private static readonly byte[] Signature = GitRepository.Encoding.GetBytes("PACK");
 
-        public static Stream GetObject(GitPack pack, Stream stream, int offset, string objectType, GitPackObjectType packObjectType)
+        public static Stream GetObject(GitPack pack, Stream stream, long offset, string objectType, GitPackObjectType packObjectType)
         {
             if (pack == null)
             {
@@ -42,7 +42,7 @@ namespace Quamotion.GitVersioning.Git
             if (type == GitPackObjectType.OBJ_OFS_DELTA)
             {
                 var baseObjectRelativeOffset = ReadVariableLengthInteger(stream);
-                var baseObjectOffset = (int)(offset - baseObjectRelativeOffset);
+                var baseObjectOffset = (long)(offset - baseObjectRelativeOffset);
 
                 var deltaStream = GitObjectStream.Create(stream, decompressedSize);
 
@@ -102,9 +102,9 @@ namespace Quamotion.GitVersioning.Git
             return (type, length);
         }
 
-        private static int ReadVariableLengthInteger(Stream stream)
+        private static long ReadVariableLengthInteger(Stream stream)
         {
-            int offset = -1;
+            long offset = -1;
             int b;
 
             do

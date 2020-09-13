@@ -10,7 +10,7 @@ namespace Quamotion.GitVersioning.Git
         {
         }
 
-        public override Stream Add(int offset, Stream stream)
+        public override Stream Add(long offset, Stream stream)
         {
             Stream cacheStream = File.Open($"{this.Pack.Name}-{offset}", FileMode.Create);
             stream.CopyTo(cacheStream);
@@ -24,7 +24,7 @@ namespace Quamotion.GitVersioning.Git
         {
         }
 
-        public override bool TryOpen(int offset, out Stream stream)
+        public override bool TryOpen(long offset, out Stream stream)
             => FileHelpers.TryOpen($"{this.Pack.Name}-{offset}", out stream);
     }
 }
