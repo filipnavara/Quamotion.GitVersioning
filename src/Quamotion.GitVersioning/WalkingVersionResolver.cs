@@ -73,8 +73,6 @@ namespace Quamotion.GitVersioning
                         break;
                     }
 
-                    knownTreeIds.Add(treeId);
-
                     if (i == pathComponents.Length)
                     {
                         // Read the updated version information
@@ -87,6 +85,11 @@ namespace Quamotion.GitVersioning
                             if (versionChanged)
                             {
                                 this.logger.LogInformation("The version number changed from '{version}' to '{currentVersion}' in commit '{commit}'. Using this commit as the baseline.", version, currentVersion, commit.Sha);
+                            }
+                            else
+                            {
+                                // TODO: Add whole path
+                                knownTreeIds.Add(treeId);
                             }
                         }
                     }
