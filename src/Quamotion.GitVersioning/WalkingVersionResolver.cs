@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Quamotion.GitVersioning.Git;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -60,7 +61,7 @@ namespace Quamotion.GitVersioning
                     if (treeId == GitObjectId.Empty)
                     {
                         // A version.json file was added in this revision
-                        this.logger.LogDebug("The component '{pathComponent}' could not be found in this commit. Assuming the version.json file was not present.", pathComponents[i]);
+                        this.logger.LogDebug("The component '{pathComponent}' could not be found in this commit. Assuming the version.json file was not present.", i == pathComponents.Length ? Array.Empty<byte>() : pathComponents[i]);
                         versionChanged = true;
                         break;
                     }
